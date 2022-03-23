@@ -1,5 +1,6 @@
 package pt.tecnico.sec;
 
+import java.security.KeyStore;
 import java.util.*;
 
 import pt.tecnico.sec.server.ServerFrontend;
@@ -7,6 +8,11 @@ import pt.tecnico.sec.server.ServerFrontend;
 public class Client {
 
     ServerFrontend _frontend;
+    private int id;
+    private List<Account> accounts ;
+
+    String pbkAlias;
+    String prkAlias;
 
     public Client( ServerFrontend frontend){
         _frontend = frontend;
@@ -18,7 +24,9 @@ public class Client {
 
 
     public boolean pingWorking( ){
-        String s = _frontend.Ping(" App");
+        String input = "App";
+
+        String s = _frontend.Ping( input );
         System.out.println( s );
         return true;
     }

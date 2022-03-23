@@ -11,29 +11,18 @@ message PingRequest {
 message PingResponse {
 	string output = 1;
 }
-/*
-message BalanceRequest{
-  string name = 1; 
+
+message MessageRequest{
+  string message = 1;
+  string hash = 2;
 }
 
-message BalanceResponse{
-    int32 balance = 1;
+message MessageResponse{
+    string message = 1;
+    string hash = 2;
 }
-
-
-message BikedownRequest{
-    string name = 1;
-    double coord1 = 2;
-    double coord2 = 3;
-    string stationidentifier = 4;
-}
-
-message BikedownResponse{
-}*/
-
-
-
 
 service ServerService {
   rpc ping(PingRequest) returns (PingResponse);
+  rpc send(MessageRequest) returns (MessageResponse);
 }
