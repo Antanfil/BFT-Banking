@@ -31,6 +31,7 @@ public class ClientMain {
 		int clientID = 0;
 		int SSID;
 		int SeqNo;
+		PublicKey serverKey;
 		boolean again = true;
 
 
@@ -66,12 +67,16 @@ public class ClientMain {
 		System.out.println("Welcome to your Home banking Client No " + clientID + "\n");
 		System.out.println("Generating Client's Public/Private Key Pair ... \n");
 
-
-		client.createKeyStore();
+		client.createClientKeyStore();
 
 		System.out.println("Done !\n");
 		System.out.println("Connecting to server ...\n");
-		// TODO
+
+		serverKey = client.exchangeKeys();
+		System.out.println(serverKey);
+		SSID = client.connect();
+
+
 		System.out.println("Connection to server complete !! We are ready to go. \n");
 
 		do {

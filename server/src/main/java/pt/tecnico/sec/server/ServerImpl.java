@@ -31,22 +31,17 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
         responseObserver.onNext(resp);
         responseObserver.onCompleted();
     }
+    @Override
+    public void send(MessageRequest request, StreamObserver<MessageResponse> responseObserver) {
+        String clientPubKey = request.getMessage();
 
-
-   /* @Override
-    public void getbalance(BalanceRequest request, StreamObserver<BalanceResponse> responseObserver) {
-        String name = request.getName();
-
-        if (name == null || name.isBlank()) {
-            responseObserver.onError(INVALID_ARGUMENT.withDescription("Name cannot be empty!").asRuntimeException());
-        }
-
-        int balance = _server.get_REC_Balance(name);
-
-        BalanceResponse resp = BalanceResponse.newBuilder().setBalance(balance).build();
+        _server.receiveKey(clientPubKey);
+        MessageResponse resp= MessageResponse.newBuilder().setMessage(_server.getKey()).setHash("").build();
         responseObserver.onNext(resp);
         responseObserver.onCompleted();
+
     }
-*/
+
+
 
 }

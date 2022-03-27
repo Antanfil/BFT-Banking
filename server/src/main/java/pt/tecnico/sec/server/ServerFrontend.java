@@ -5,6 +5,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
 
+import org.apache.commons.lang3.tuple.Pair;
 import pt.tecnico.sec.server.grpc.*;
 import pt.tecnico.sec.server.grpc.Server.*;
 
@@ -36,16 +37,30 @@ public class ServerFrontend {
 
     }
 
-    public String Ping(ServerServiceGrpc.ServerServiceBlockingStub st) {
+    public String exchange( String pbKey ){
         try {
-            PingRequest pingreq = PingRequest.newBuilder().setInput("1").build();
-            PingResponse pingresp = PingResponse.newBuilder().build();
+            MessageRequest messageReq = MessageRequest.newBuilder().setMessage(pbKey).setHash("").build();
+            MessageResponse messageResp = MessageResponse.newBuilder().build();
 
-            pingresp = st.ping(pingreq);
-            return pingresp.getOutput();
+            messageResp = stub.send(messageReq);
+            return messageResp.getMessage();
+
         } catch (StatusRuntimeException e) {
             return "Caught error with description: " + e.getStatus().getDescription();
         }
+
+    }
+    public List<String> send( String message , String signature){
+        MessageRequest messageReq = MessageRequest.newBuilder().setMessage(message).setHash(signature).build();
+        MessageResponse messageResp = MessageResponse.newBuilder().build();
+
+        messageResp = stub.send(messageReq);
+
+        List<String> list = new ArrayList<String>();
+        list.set(0 , messageResp.getMessage() );
+        list.set(1 , messageResp.getHash() );
+
+        return list;
 
     }
 /*

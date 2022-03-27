@@ -3,6 +3,8 @@ package pt.tecnico.sec;
 import java.io.*;
 import java.security.*;
 import java.security.cert.Certificate;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 
 import java.security.*;
@@ -17,10 +19,8 @@ public class Client {
 
     ServerFrontend _frontend;
     private int id;
-    KeyStore  keyStore;
+    ClientKeyStore  clientKeyStore;
 
-    private String pbkAlias;
-    private String prkAlias;
 
     public Client( ServerFrontend frontend , int id){
         _frontend = frontend;
@@ -36,97 +36,43 @@ public class Client {
         return true;
     }
 
-    public void createKeyStore() {
+    public void createClientKeyStore() {
 
-        pbkAlias = "pbkAlias" + Integer.toString(id) ;
-        prkAlias = "prkAlias" + Integer.toString(id) ;
         try {
-
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DSA");
-            //SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
-            keyGen.initialize(1024 );
-            KeyPair pair = keyGen.generateKeyPair();
-            PrivateKey privateKey = pair.getPrivate();
-            PublicKey publicKey = pair.getPublic();
-
-
-
-            File file = new File("store" + Integer.toString(id) +".jks" );
-
-            if( file.createNewFile() ){
-                keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-                keyStore.load(null, "password".toCharArray() );
-                FileOutputStream storeOut = new FileOutputStream("store" + Integer.toString(id) +".jks" );
-                keyStore.store(storeOut, "password".toCharArray());
-            }
-            else{
-                keyStore = KeyStore.getInstance("JKS");
-                keyStore.load(new FileInputStream("store" + Integer.toString(id) +".jks"), "password".toCharArray());
-            }
-
-            if ( !keyStore.containsAlias(prkAlias) && !keyStore.containsAlias(pbkAlias) ) {
-                //keystore.setEntry("alias", new KeyStore.PrivateKeyEntry(privateKey, null), new KeyStore.PasswordProtection("pass".toCharArray()));	//chain null, mas precisa do certificado
-                X509Certificate cert = new Certificate() ;
-                X509CertInfo info = new X509CertInfo();
-                keyStore.setKeyEntry( prkAlias, privateKey, "password".toCharArray() , null);
-                //keyStore.setKeyEntry( prkAlias , privateKey,"password".toCharArray(), null);//chain null(?)
-            }
-
-            /*
-    Date from = new Date();
-    Date to = new Date(from.getTime() + days * 86400000l);
-    CertificateValidity interval = new CertificateValidity(from, to);
-    BigInteger sn = new BigInteger(64, new SecureRandom());
-    X500Name owner = new X500Name(dn);
-
-    info.set(X509CertInfo.VALIDITY, interval);
-    info.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(sn));
-    info.set(X509CertInfo.SUBJECT, new CertificateSubjectName(owner));
-    info.set(X509CertInfo.ISSUER, new CertificateIssuerName(owner));
-    info.set(X509CertInfo.KEY, new CertificateX509Key(pair.getPublic()));
-    info.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
-    AlgorithmId algo = new AlgorithmId(AlgorithmId.md5WithRSAEncryption_oid);
-    info.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(algo));
-
-    // Sign the cert to identify the algorithm that's used.
-    X509CertImpl cert = new X509CertImpl(info);
-    cert.sign(privkey, algorithm);
-
-    // Update the algorith, and resign.
-    algo = (AlgorithmId)cert.get(X509CertImpl.SIG_ALG);
-    info.set(CertificateAlgorithmId.NAME + "." + CertificateAlgorithmId.ALGORITHM, algo);
-    cert = new X509CertImpl(info);
-    cert.sign(privkey, algorithm);*/
-            saveKeyStore();
-
-        } catch (KeyStoreException e) {
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (CertificateException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+            clientKeyStore = new ClientKeyStore();
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
     }
 
-    void saveKeyStore(){
-        FileOutputStream storeOut = null;
+    public PublicKey exchangeKeys() {
+        byte[] byte_pubkey = clientKeyStore.getPublicKey().getEncoded();
+        String pbKey =  Base64.getEncoder().encodeToString(byte_pubkey);
+        String serverKey = _frontend.exchange(pbKey);
+        PublicKey publicKey = null;
+        byte[] byte_Serverpubkey;
+
         try {
-            storeOut = new FileOutputStream("store" + Integer.toString(id) +".jks" );
-            keyStore.store(storeOut, "password".toCharArray());
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (CertificateException e) {
-            e.printStackTrace();
-        } catch (KeyStoreException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+            byte_Serverpubkey = Base64.getDecoder().decode(serverKey);
+            //X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(Base64.getDecoder().decode(serverKey));
+            KeyFactory keyFactory = null;
+            keyFactory = KeyFactory.getInstance("DSA");
+            publicKey =  keyFactory.generatePublic(new X509EncodedKeySpec(byte_Serverpubkey));
+            //publicKey = keyFactory.generatePublic(pubKeySpec);
+
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
+        } catch (InvalidKeySpecException e) {
+            e.printStackTrace();
         }
+
+        return publicKey;
+
     }
+
+    public int connect() {
+
+        return 1;
+    }
+
 }
