@@ -6,6 +6,8 @@ package pt.tecnico.sec;
  import pt.tecnico.sec.server.grpc.Server.*;
  import pt.tecnico.sec.server.ServerFrontend;
 
+ import javax.crypto.*;
+ import javax.crypto.spec.IvParameterSpec;
  import java.security.*;
  import java.security.KeyStore.PasswordProtection;
  import java.security.KeyStore.PrivateKeyEntry;
@@ -49,7 +51,7 @@ public class ClientMain {
 
 
 		again = true;
-		System.out.println("Please insert your client id:");
+		System.out.println("Please insert your client id and password:");
 		try {
 			System.out.printf("> ");
 			tokens1.clear();
@@ -67,15 +69,14 @@ public class ClientMain {
 		System.out.println("Welcome to your Home banking Client No " + clientID + "\n");
 		System.out.println("Generating Client's Public/Private Key Pair ... \n");
 
-		client.createClientKeyStore();
+		client.loadKeyStore( tokens1.get(1) );
 
 		System.out.println("Done !\n");
 		System.out.println("Connecting to server ...\n");
 
 		serverKey = client.exchangeKeys();
-		System.out.println(serverKey);
-		SSID = client.connect();
 
+		SSID = client.connect();
 
 		System.out.println("Connection to server complete !! We are ready to go. \n");
 

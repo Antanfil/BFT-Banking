@@ -48,8 +48,8 @@ public class ServerFrontend {
         } catch (StatusRuntimeException e) {
             return "Caught error with description: " + e.getStatus().getDescription();
         }
-
     }
+
     public List<String> send( String message , String signature){
         MessageRequest messageReq = MessageRequest.newBuilder().setMessage(message).setHash(signature).build();
         MessageResponse messageResp = MessageResponse.newBuilder().build();

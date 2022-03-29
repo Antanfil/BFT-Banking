@@ -26,7 +26,6 @@ public class Server {
     }
 
     public String getKey() {
-        System.out.println("YELOOW");
        // System.out.println(key.toString());
         byte[] byte_pubkey = key.getEncoded();
         String pbKey =  Base64.getEncoder().encodeToString(byte_pubkey);

@@ -15,11 +15,14 @@ import java.security.cert.X509Certificate;
 
 import pt.tecnico.sec.server.ServerFrontend;
 
+import javax.crypto.*;
+import javax.crypto.spec.IvParameterSpec;
+
 public class Client {
 
-    ServerFrontend _frontend;
+    transient ServerFrontend _frontend;
     private int id;
-    ClientKeyStore  clientKeyStore;
+    KeyStore  keyStore;
 
 
     public Client( ServerFrontend frontend , int id){
@@ -36,17 +39,20 @@ public class Client {
         return true;
     }
 
-    public void createClientKeyStore() {
-
-        try {
-            clientKeyStore = new ClientKeyStore();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
+    public int getId() {
+        return id;
     }
 
     public PublicKey exchangeKeys() {
-        byte[] byte_pubkey = clientKeyStore.getPublicKey().getEncoded();
+        Certificate certificate = null;
+        PublicKey publicKeyClient = null;
+        try {
+            certificate = keyStore.getCertificate("client_"+this.id);
+            publicKeyClient = certificate.getPublicKey();
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        byte[] byte_pubkey = publicKeyClient.getEncoded();
         String pbKey =  Base64.getEncoder().encodeToString(byte_pubkey);
         String serverKey = _frontend.exchange(pbKey);
         PublicKey publicKey = null;
@@ -54,11 +60,9 @@ public class Client {
 
         try {
             byte_Serverpubkey = Base64.getDecoder().decode(serverKey);
-            //X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(Base64.getDecoder().decode(serverKey));
             KeyFactory keyFactory = null;
             keyFactory = KeyFactory.getInstance("DSA");
             publicKey =  keyFactory.generatePublic(new X509EncodedKeySpec(byte_Serverpubkey));
-            //publicKey = keyFactory.generatePublic(pubKeySpec);
 
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
@@ -75,4 +79,23 @@ public class Client {
         return 1;
     }
 
+
+    public void loadKeyStore( String password ){
+        try {
+            keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(new FileInputStream("client_"+this.id+".p12"), password.toCharArray());
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (CertificateException e) {
+            e.printStackTrace();
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+
+    }
 }
