@@ -36,12 +36,10 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
         String clientPubKey = request.getMessage();
 
         _server.receiveKey(clientPubKey);
-        MessageResponse resp= MessageResponse.newBuilder().setMessage(_server.getKey()).setHash("").build();
+        MessageResponse resp= MessageResponse.newBuilder().setMessage(_server.getKey()).build();
         responseObserver.onNext(resp);
         responseObserver.onCompleted();
 
     }
-
-
 
 }

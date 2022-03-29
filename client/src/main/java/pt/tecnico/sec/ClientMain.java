@@ -31,9 +31,6 @@ public class ClientMain {
  		final String host = args[0];
  		final int port = Integer.parseInt(args[1]);
 		int clientID = 0;
-		int SSID;
-		int SeqNo;
-		PublicKey serverKey;
 		boolean again = true;
 
 
@@ -74,20 +71,20 @@ public class ClientMain {
 		System.out.println("Done !\n");
 		System.out.println("Connecting to server ...\n");
 
-		serverKey = client.exchangeKeys();
+		client.exchangeKeys();
 
-		SSID = client.connect();
+		client.connect();
 
 		System.out.println("Connection to server complete !! We are ready to go. \n");
 
 		do {
 			try {
 				System.out.println("Select an action to perform: \n" +
-						"1.- Open an account\n" +
-						"2.- Send amount (source account number & destination account number & amount needed)\n" +
-						"3.- Check account (account number needed ) \n" +
-						"4.- Receive amount (account number needed) \n" +
-						"5.- Audit (account number needed)  \n" +
+						"1.- Open an account ( account alias )\n" +
+						"2.- Send amount (source account alias & destination account alias & amount needed)\n" +
+						"3.- Check account (account alias needed ) \n" +
+						"4.- Receive amount (account alias needed) \n" +
+						"5.- Audit (account alias needed)  \n" +
 						"6.- Exit\n");
 				System.out.printf("> ");
 				tokens.clear();
@@ -97,22 +94,77 @@ public class ClientMain {
 				}
 				command = tokens.get(0);
 				System.out.println(command);
+				int status;
+				String status1;
 				switch (command) {
 					case "ping":
-						client.pingWorking();
+						client.pingWorking( );
 						break;
 					case "1":
+						status = client.openAccount( tokens.get(1) );
+						if(status == -1)
+							System.out.println("Something went wrong. Try Again");
+						else if(status == 0)
+							System.out.println("Account opened successfully !!\n");
+						else
+							System.out.println("Unknown error");
 						break;
 					case "2":
+						status = client.sendAmount( tokens.get(1) , tokens.get(2) , Integer.parseInt( tokens.get(3) )  );
+						if(status == -1)
+							System.out.println("Something went wrong. Try Again \n");
+						else if(status == 0)
+							System.out.println("Money Sent !! Awaiting confirmation by recipient.\n");
+						else if(status == 1)
+							System.out.println("You don't have enough money in this account :( \n");
+						else
+							System.out.println("Unknown error");
 						break;
 					case "3":
+						status1 = client.checkAccount( tokens.get(1) );
+						if( status1.equals("-1") )
+							System.out.println("Something went wrong. Try Again \n");
+						else if( status1.length() > 7 ){
+							System.out.println("You have pending money entries to accept !!\n");
+							System.out.println(status1);
+						}
+						else if( status1.length() > 7 ) {
+							System.out.println("Your balance is:");
+							System.out.println(">" + status1 + "\n");
+						}
+						else
+							System.out.println("Unknown error");
 						break;
 					case "4":
+						status = client.receiveAmount( tokens.get(1));
+						if(status == -1)
+							System.out.println("Something went wrong. Try Again \n");
+						else if(status == 0)
+							System.out.println("Money entered your account !! \n");
+						else
+							System.out.println("Unknown error");
 						break;
 					case "5":
+						status1 = client.audit( tokens.get(1));
+						if(status1.equals("-1"))
+							System.out.println("Something went wrong. Try Again");
+						else if(status1.length() > 7 ) {
+							System.out.println("List of accounts transactions:");
+							System.out.println(status1 + "\n");
+						}
+						else
+							System.out.println("Unknown error");
 						break;
 					case "6":
-						again = false;
+						status = client.closeConnection( );
+						if(status == -1)
+							System.out.println("Something went wrong. Try Again");
+						else if(status == 0){
+							again = false;
+							System.out.println("Connection Closing ...");
+						}
+						else
+							System.out.println("Unknown error");
 						break;
 					default:
 						break;

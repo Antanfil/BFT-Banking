@@ -14,12 +14,12 @@ message PingResponse {
 
 message MessageRequest{
   string message = 1;
-  string hash = 2;
+  bytes hash = 2;
 }
 
 message MessageResponse{
     string message = 1;
-    string hash = 2;
+    bytes hash = 2;
 }
 
 service ServerService {
