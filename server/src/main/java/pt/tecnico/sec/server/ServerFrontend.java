@@ -1,6 +1,13 @@
 package pt.tecnico.sec.server;
 
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.util.*;
+
+import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
@@ -8,6 +15,11 @@ import io.grpc.StatusRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 import pt.tecnico.sec.server.grpc.*;
 import pt.tecnico.sec.server.grpc.Server.*;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 
 public class ServerFrontend {
@@ -39,7 +51,7 @@ public class ServerFrontend {
 
     public String exchange( String pbKey ){
         try {
-            MessageRequest messageReq = MessageRequest.newBuilder().setMessage(pbKey).setHash("").build();
+            MessageRequest messageReq = MessageRequest.newBuilder().setMessage(pbKey).build();
             MessageResponse messageResp = MessageResponse.newBuilder().build();
 
             messageResp = stub.send(messageReq);
@@ -50,17 +62,102 @@ public class ServerFrontend {
         }
     }
 
-    public List<String> send( String message , String signature){
-        MessageRequest messageReq = MessageRequest.newBuilder().setMessage(message).setHash(signature).build();
+    public String send(String message , byte[] signature, PublicKey serverPublicKey, int sid , int seqNo){
+        long start ;
+        long end ;
+
+        ByteString signHash = ByteString.copyFrom(signature);
+        MessageRequest messageReq = MessageRequest.newBuilder().setMessage(message).setHash(signHash).build();
         MessageResponse messageResp = MessageResponse.newBuilder().build();
+        String messageResponse = "";
+        String SSID;
+        String SeqNo;
 
-        messageResp = stub.send(messageReq);
+        boolean responseOK = false;
+        boolean signatureOK = false;
 
-        List<String> list = new ArrayList<String>();
-        list.set(0 , messageResp.getMessage() );
-        list.set(1 , messageResp.getHash() );
+        while( !signatureOK || !responseOK ) {
+            start = System.currentTimeMillis();
+            end = start + 300000;
 
-        return list;
+            try{
+                messageResp = stub.send(messageReq);
+
+                if(System.currentTimeMillis() > end) {
+                    message = "Timeout";
+                    break;
+                }
+
+            } catch (StatusRuntimeException e) {
+                System.out.println("Caught error with description: " + e.getStatus().getDescription());
+                return "-1";
+            }
+                String[] params = messageResp.getMessage().split(";");
+                SSID = params[0];
+                SeqNo = params[1];
+
+
+            messageResponse = messageResp.getMessage();
+            ByteString signHashResponse = messageResp.getHash();
+
+            byte[] signatureResponse = signHashResponse.toByteArray();
+
+            if (verifySignature(messageResponse, signatureResponse, serverPublicKey)) {
+                signatureOK = true;
+            }
+            else{
+                signatureOK = false;
+            }
+            if ( Integer.parseInt(SSID) == sid && Integer.parseInt(SeqNo) == seqNo ) {
+                responseOK = true;
+            }
+            else{
+                responseOK = false;
+            }
+
+
+        }
+
+        return messageResponse;
+
+    }
+
+    public boolean verifySignature(String message, byte[] encryptedMessageHash, PublicKey publicKey) {
+
+        byte[] decryptedMessageHash = null;
+        Cipher cipher = null;
+
+        try {
+
+            cipher = Cipher.getInstance("RSA");
+            cipher.init(Cipher.DECRYPT_MODE, publicKey);
+            decryptedMessageHash = cipher.doFinal(encryptedMessageHash);
+
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        }
+
+        MessageDigest md = null;
+
+        try {
+
+            md = MessageDigest.getInstance("SHA-256");
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        byte[] newMessageHash = md.digest(message.getBytes(StandardCharsets.UTF_8));
+
+        return Arrays.equals(decryptedMessageHash, newMessageHash);
 
     }
 /*
