@@ -6,10 +6,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -63,8 +65,7 @@ public class ServerFrontend {
     }
 
     public String send(String message , byte[] signature, PublicKey serverPublicKey, int sid , int seqNo){
-        long start ;
-        long end ;
+
 
         ByteString signHash = ByteString.copyFrom(signature);
         MessageRequest messageReq = MessageRequest.newBuilder().setMessage(message).setHash(signHash).build();
@@ -77,24 +78,21 @@ public class ServerFrontend {
         boolean signatureOK = false;
 
         while( !signatureOK || !responseOK ) {
-            start = System.currentTimeMillis();
-            end = start + 300000;
 
             try{
-                messageResp = stub.send(messageReq);
-
-                if(System.currentTimeMillis() > end) {
-                    message = "Timeout";
-                    break;
-                }
+                messageResp = stub.withDeadlineAfter(500000, TimeUnit.MILLISECONDS).send(messageReq);
 
             } catch (StatusRuntimeException e) {
-                System.out.println("Caught error with description: " + e.getStatus().getDescription());
+
+                if (e.getStatus().getCode() == Status.Code.DEADLINE_EXCEEDED) {
+                    return "-2";
+                }
                 return "-1";
             }
-                String[] params = messageResp.getMessage().split(";");
-                SSID = params[0];
-                SeqNo = params[1];
+
+            String[] params = messageResp.getMessage().split(";");
+            SSID = params[0];
+            SeqNo = params[1];
 
 
             messageResponse = messageResp.getMessage();
@@ -159,6 +157,10 @@ public class ServerFrontend {
 
         return Arrays.equals(decryptedMessageHash, newMessageHash);
 
+    }
+
+    public void shutDownChannel() {
+        channel.shutdown();
     }
 /*
     public int Balance(String name) {
