@@ -38,19 +38,6 @@ public class ServerFrontend {
 
     }
 
-    public String Ping(String input) {
-        try {
-            PingRequest pingreq = PingRequest.newBuilder().setInput(input).build();
-            PingResponse pingresp = PingResponse.newBuilder().build();
-
-            pingresp = stub.ping(pingreq);
-            return pingresp.getOutput();
-        } catch (StatusRuntimeException e) {
-            return "Caught error with description: " + e.getStatus().getDescription();
-        }
-
-    }
-
     public String exchange( String pbKey ){
         try {
             MessageRequest messageReq = MessageRequest.newBuilder().setMessage(pbKey).build();
@@ -145,7 +132,7 @@ public class ServerFrontend {
             ByteString signHashResponse = messageResp.getHash();
 
             byte[] signatureResponse = signHashResponse.toByteArray();
-
+            System.out.println("Verifying authenticity of incoming message ...");
             if (verifySignature(messageResponse, signatureResponse, serverPublicKey)) {
                 signatureOK = true;
             }
@@ -161,6 +148,7 @@ public class ServerFrontend {
 
 
         }
+        System.out.println("Authenticity verified ...");
         return messageResponse;
 
     }

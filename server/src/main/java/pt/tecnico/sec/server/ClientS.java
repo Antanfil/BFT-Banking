@@ -55,7 +55,8 @@ public class ClientS implements Serializable {
     public Transaction sendAmount(PublicKey source, PublicKey dest, int amount, int tid) {
         Account account = accounts.get(source);
         Transaction tra = account.createOutgoingTransaction( dest , amount , tid );
-
+        if(tra == null)
+                return null;
         Account account1 = accounts.get(dest);
         account1.createIncomingTransaction( tra );
         return tra;

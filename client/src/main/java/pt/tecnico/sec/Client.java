@@ -29,13 +29,6 @@ public class Client {
         this.id = id;
     }
 
-    public boolean pingWorking( ){
-        String input = "App";
-
-        String s = _frontend.Ping( input );
-        System.out.println( s );
-        return true;
-    }
 
     public int getId() {
         return id;
@@ -77,7 +70,6 @@ public class Client {
 
         String message = "0;"+id+";"+publicKeyClient;
         String serverKey = _frontend.exchange(message);
-        System.out.println(serverKey.toString());
         PublicKey publicKey = null;
         byte[] byte_Serverpubkey;
 
@@ -157,6 +149,9 @@ public class Client {
         incSeqNo();
         if(status.equals("200"))
             return 0;
+        else if(status.equals("403"))
+            return -3;
+
         else
             return -1;
     }
@@ -320,7 +315,7 @@ public class Client {
     }
 
     public byte[] getSignature(String alias, String message, String password) {
-
+        System.out.println("Signing outgoing message ...");
         byte[] digitalSignature = null;
         MessageDigest md = null;
         try {
@@ -353,7 +348,7 @@ public class Client {
         } catch (BadPaddingException e) {
             e.printStackTrace();
         }
-
+        System.out.println("Message Signed !!");
         return digitalSignature;
     }
 }

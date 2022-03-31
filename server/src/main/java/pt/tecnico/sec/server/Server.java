@@ -205,8 +205,9 @@ public class Server implements Serializable {
     }
 
     private String sendAmount(ClientS client , String sourceAccount, String destAccount, int amount , int tid) {
-        client.sendAmount(stringToKey( sourceAccount ) , stringToKey( destAccount ) , amount , tid );
-
+        Transaction t = client.sendAmount(stringToKey( sourceAccount ) , stringToKey( destAccount ) , amount , tid );
+        if (t == null)
+            return "400";
         return "200";
     }
 
