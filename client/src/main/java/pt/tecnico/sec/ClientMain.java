@@ -2,17 +2,8 @@ package pt.tecnico.sec;
  
  import java.io.*;
 
- import pt.tecnico.sec.server.grpc.*;
- import pt.tecnico.sec.server.grpc.Server.*;
- import pt.tecnico.sec.server.ServerFrontend;
-
- import javax.crypto.*;
- import javax.crypto.spec.IvParameterSpec;
  import java.security.*;
- import java.security.KeyStore.PasswordProtection;
- import java.security.KeyStore.PrivateKeyEntry;
  import java.security.cert.CertificateException;
- import java.security.cert.X509Certificate;
  import java.util.List;
  import java.util.StringTokenizer;
  import java.util.ArrayList;

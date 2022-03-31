@@ -8,22 +8,16 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 
-import java.security.*;
-import java.security.KeyStore.PasswordProtection;
-import java.security.KeyStore.PrivateKeyEntry;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-
-import pt.tecnico.sec.server.ServerFrontend;
 
 import javax.crypto.*;
-import javax.crypto.spec.IvParameterSpec;
 
 public class Client {
 
     transient ServerFrontend _frontend;
     private int id;
     KeyStore  keyStore;
+    private String password;
 
 
     private int SSID;
@@ -49,7 +43,7 @@ public class Client {
     }
 
     public void incSeqNo(){
-
+        SeqNo ++;
     }
     public int getSeqNo() {
         return SeqNo;
@@ -72,7 +66,6 @@ public class Client {
         String pbKey =  Base64.getEncoder().encodeToString(byte_pubkey);
 
         return pbKey;
-
     }
 
     public PublicKey getServerPK() {
@@ -83,15 +76,16 @@ public class Client {
 
         String publicKeyClient = this.getPublicKey("client_"+this.id);
 
-        String message = "0;"+publicKeyClient;
+        String message = "0;"+id+";"+publicKeyClient;
         String serverKey = _frontend.exchange(message);
+        System.out.println(serverKey.toString());
         PublicKey publicKey = null;
         byte[] byte_Serverpubkey;
 
         try {
             byte_Serverpubkey = Base64.getDecoder().decode(serverKey);
             KeyFactory keyFactory = null;
-            keyFactory = KeyFactory.getInstance("DSA");
+            keyFactory = KeyFactory.getInstance("RSA");
             serverPK =  keyFactory.generatePublic(new X509EncodedKeySpec(byte_Serverpubkey));
 
         } catch (NoSuchAlgorithmException e) {
@@ -112,16 +106,20 @@ public class Client {
         }
 
         byte[] signature = null;
-        //signature = getSignature("SYN")
-        String messageResponse = _frontend.send("SYN", signature, serverPK, SSID , SeqNo);
+        signature = getSignature("client_"+id ,"SYN;"+id);
+        String messageResponse = _frontend.connect("SYN;"+id, signature, serverPK );
         if(messageResponse == "-2"){
             return connect( iter +1);
         }
         SSID =  Integer.parseInt(messageResponse);
+        SeqNo = 1;
+
+        System.out.println("\n\n\n\n"+SSID+"\n\n\n\n");
         return 0;
     }
 
     public void loadKeyStore( String password ){
+        this.password = password;
         try {
             keyStore = KeyStore.getInstance("PKCS12");
             keyStore.load(new FileInputStream("client_"+this.id+".p12"), password.toCharArray());
@@ -144,11 +142,11 @@ public class Client {
         if(iter >= 10){
             return -2;
         }
-        loadKeyStore("password");
+        loadKeyStore(password);
 
         String publicKeyClient = this.getPublicKey(accountAlias);
 
-        String message = "1;"+publicKeyClient+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo);
+        String message = "1;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient;
         byte[] signature = null;
         signature = getSignature(accountAlias , message);
         String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
@@ -170,11 +168,11 @@ public class Client {
         if(iter >= 10){
             return -2;
         }
-        loadKeyStore("password");
+        loadKeyStore(password);
 
         String sourcePK = this.getPublicKey(sourceAlias);
         String destPK = this.getPublicKey(destinationAlias);
-        String message = "2;"+sourcePK+";"+destPK+";"+Integer.toString(amount)+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo);
+        String message = "2;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+sourcePK+";"+destPK+";"+Integer.toString(amount);
         byte[] signature = null;
         signature = getSignature(sourceAlias , message);
         String messageResponse = _frontend.send(message, signature , serverPK, SSID , SeqNo);
@@ -200,11 +198,11 @@ public class Client {
         if(iter >= 10){
             return "-2";
         }
-        loadKeyStore("password");
+        loadKeyStore(password);
 
         String publicKeyClient = this.getPublicKey(accountAlias);
 
-        String message = "3;"+publicKeyClient+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo);
+        String message = "3;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient;
         byte[] signature = null;
         signature = getSignature(accountAlias , message);
         String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
@@ -237,11 +235,11 @@ public class Client {
         if(iter >= 10){
             return -2;
         }
-        loadKeyStore("password");
+        loadKeyStore(password);
 
         String publicKeyClient = this.getPublicKey(accountAlias);
 
-        String message = "4;"+publicKeyClient+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo);
+        String message = "4;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient;
 
         byte[] signature = null;
         signature = getSignature(accountAlias , message);
@@ -264,11 +262,11 @@ public class Client {
         if(iter >= 10){
             return "-2";
         }
-        loadKeyStore("password");
+        loadKeyStore(password);
 
         String publicKeyClient = this.getPublicKey(accountAlias);
 
-        String message = "5;"+publicKeyClient+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo);
+        String message = "5;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient;
         byte[] signature = null;
         signature = getSignature(accountAlias , message);
         String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
@@ -299,8 +297,9 @@ public class Client {
         }
         byte[] signature = null;
 
-        signature = getSignature( "FIN" , "client_"+this.id );
-        String messageResponse = _frontend.send("FIN", signature, serverPK, SSID , SeqNo);
+        String message = "FIN;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo) ;
+        signature = getSignature( "client_"+id ,message);
+        String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
         if(messageResponse == "-2"){
             return closeConnection( iter +1);
         }
@@ -308,11 +307,12 @@ public class Client {
         String[] params = messageResponse.split(";");
 
         String status = params[2];
-        _frontend.shutDownChannel();
 
         incSeqNo();
-        if(status.equals("200"))
+        if(status.equals("200")) {
+            _frontend.shutDownChannel();
             return 0;
+        }
         else
             return 1;
 
@@ -334,7 +334,7 @@ public class Client {
         try {
 
             cipher = Cipher.getInstance("RSA");
-            cipher.init(Cipher.ENCRYPT_MODE, keyStore.getKey(alias, "password".toCharArray() ));
+            cipher.init(Cipher.ENCRYPT_MODE, keyStore.getKey(alias, password.toCharArray() ));
             digitalSignature = cipher.doFinal(messageHash);
 
         } catch (NoSuchAlgorithmException e) {

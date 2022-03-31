@@ -1,4 +1,4 @@
-package pt.tecnico.sec.server;
+package pt.tecnico.sec;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
@@ -64,6 +64,52 @@ public class ServerFrontend {
         }
     }
 
+    public String connect(String message , byte[] signature, PublicKey serverPublicKey){
+
+
+        ByteString signHash = ByteString.copyFrom(signature);
+        MessageRequest messageReq = MessageRequest.newBuilder().setMessage(message).setHash(signHash).build();
+        MessageResponse messageResp = MessageResponse.newBuilder().build();
+        String messageResponse = "";
+        String SSID = "-1";
+
+        boolean signatureOK = false;
+
+        while( !signatureOK ) {
+
+            try{
+                messageResp = stub.withDeadlineAfter(500000, TimeUnit.MILLISECONDS).send(messageReq);
+
+            } catch (StatusRuntimeException e) {
+
+                if (e.getStatus().getCode() == Status.Code.DEADLINE_EXCEEDED) {
+                    return "-2";
+                }
+                return "-1";
+            }
+
+            String[] params = messageResp.getMessage().split(";");
+            SSID = params[0];
+
+
+            messageResponse = messageResp.getMessage();
+            ByteString signHashResponse = messageResp.getHash();
+
+            byte[] signatureResponse = signHashResponse.toByteArray();
+
+            if (verifySignature(messageResponse, signatureResponse, serverPublicKey)) {
+                signatureOK = true;
+            }
+            else{
+                signatureOK = false;
+            }
+
+        }
+
+        return SSID;
+
+    }
+
     public String send(String message , byte[] signature, PublicKey serverPublicKey, int sid , int seqNo){
 
 
@@ -115,7 +161,7 @@ public class ServerFrontend {
 
 
         }
-
+        System.out.println(messageResponse);
         return messageResponse;
 
     }
@@ -162,17 +208,4 @@ public class ServerFrontend {
     public void shutDownChannel() {
         channel.shutdown();
     }
-/*
-    public int Balance(String name) {
-        try {
-            BalanceRequest breq = BalanceRequest.newBuilder().setName(name).build();
-            BalanceResponse bresp = BalanceResponse.newBuilder().build();
-            bresp = stub.getbalance(breq);
-            return bresp.getBalance();
-        } catch (StatusRuntimeException e) {
-            System.out.println("Caught error with description: " + e.getStatus().getDescription());
-            return -1;
-        }
-    }
-*/
 }

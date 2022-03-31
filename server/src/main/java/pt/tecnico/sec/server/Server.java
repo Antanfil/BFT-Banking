@@ -1,38 +1,160 @@
 package pt.tecnico.sec.server;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
-import java.lang.Math;
 
 public class Server {
 
     PublicKey key = null;
-    String clientKey;
+    HashMap<String , ClientS> clients = new HashMap<String , ClientS>();
+    ArrayList<Integer> usedSids = new ArrayList<Integer>();
+    KeyStore keyStore;
 
     public Server() {
-        KeyPairGenerator keyGen = null;
         try {
-            keyGen = KeyPairGenerator.getInstance("DSA");
+            keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(new FileInputStream("server.p12"), "password".toCharArray());
+
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (CertificateException e) {
+            e.printStackTrace();
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
         }
-        keyGen.initialize(1024 );
-        KeyPair KeyPair = keyGen.generateKeyPair();
-        key = KeyPair.getPublic();
 
     }
 
-    public String getKey() {
-       // System.out.println(key.toString());
-        byte[] byte_pubkey = key.getEncoded();
+    public String exchangeKeys(String id, String clientKey) {
+        ClientS client = new ClientS(id, stringToKey(clientKey));
+        clients.put(id , client );
+
+        Certificate certificate = null;
+        PublicKey publicKeyClient = null;
+        try {
+            certificate = keyStore.getCertificate("server");
+            publicKeyClient = certificate.getPublicKey();
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        byte[] byte_pubkey = publicKeyClient.getEncoded();
         String pbKey =  Base64.getEncoder().encodeToString(byte_pubkey);
+
         return pbKey;
     }
 
-    public void receiveKey( String key ){
-        clientKey = key;
+    public PublicKey stringToKey(String publicKey) {
+        PublicKey newPublicKey = null;
+
+        byte[] byteServerPubKey = Base64.getDecoder().decode(publicKey);
+        KeyFactory keyFactory = null;
+        try {
+            keyFactory = KeyFactory.getInstance("RSA");
+            newPublicKey =  keyFactory.generatePublic(new X509EncodedKeySpec(byteServerPubKey));
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
+        return newPublicKey ;
+    }
+
+    public PublicKey getClientPublicKey(String id) {
+        ClientS client = clients.get( id );
+        return client.getClientPK() ;
+    }
+
+    public String createConnection( String id) {
+        ClientS client = clients.get( id );
+        boolean exists = false;
+        Random random = new Random();
+        int x = random.nextInt(100);
+        while( usedSids.contains(x) ){
+            random = new Random();
+            x = random.nextInt(100);
+        }
+        usedSids.add(x);
+        client.setSID(x);
+        client.setSeqNo(0);
+        return Integer.toString(x);
+
+    }
+
+    public byte[] getServerSignature( String message) {
+
+        byte[] digitalSignature = null;
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        byte[] messageHash = md.digest(message.getBytes(StandardCharsets.UTF_8));
+
+        Cipher cipher = null;
+
+        try {
+
+            cipher = Cipher.getInstance("RSA");
+            cipher.init(Cipher.ENCRYPT_MODE, keyStore.getKey("server", "password".toCharArray() ));
+            digitalSignature = cipher.doFinal(messageHash);
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        } catch (UnrecoverableKeyException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        }
+
+        return digitalSignature;
+    }
+
+    public boolean verifySessionData(String id, String sid , String seqNo) {
+        ClientS client = clients.get( id );
+
+        if( Integer.toString(client.getSID()).equals(sid) &&
+                                        Integer.toString(client.getSeqNo() + 1).equals(seqNo) ){
+            client.setSeqNo( Integer.parseInt(seqNo) );
+            return true;
+        }
+        return false;
+
+    }
+
+    public String handleMessage(String messageReq) {
+        return null;
+    }
+
+    public String closeConnection(String id) {
+        ClientS client = clients.get( id );
+        String msg = client.getSID()+";"+client.getSeqNo()+";200";
+        client.setSID(-1);
+        client.setSeqNo(0);
+        return msg;
     }
 }
