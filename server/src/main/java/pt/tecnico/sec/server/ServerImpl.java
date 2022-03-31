@@ -82,11 +82,29 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
             _server.saveState();
         } else {
             if (params[0].equals("1"))
-                verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1]));
-            else
-                verifyMessage(messageReq, signature, _server.stringToKey(params[4]));
+                if (!verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1]))) {
+                    responseObserver.onError(null);
+                }
 
-            _server.verifySessionData(params[1], params[2], params[3]);
+            else
+                if (!verifyMessage(messageReq, signature, _server.stringToKey(params[4]))) {
+                    responseObserver.onError(null);
+                }
+
+            int validity = _server.verifySessionData(params[1], params[2], params[3])
+            if (validity == -2 ) {
+
+                String repeated = _server.getLastMessage();
+                ByteString repeatedResp = ByteString.copyFrom(_server.getServerSignature(repeated));
+
+                MessageResponse resp = MessageResponse.newBuilder().setMessage(repeated).setHash(repeatedResp).build();
+                responseObserver.onNext(resp);
+                responseObserver.onCompleted();
+                _server.saveState();
+            }
+            if(validity == -1){
+                responseObserver.onError(null);
+            }
 
             String messageResp = _server.handleMessage(messageReq);
             ByteString signatureResp = ByteString.copyFrom(_server.getServerSignature(messageResp));
