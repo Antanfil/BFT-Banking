@@ -4,9 +4,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.cert.Certificate;
@@ -15,12 +13,12 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 
-public class Server {
+public class Server implements Serializable {
 
     PublicKey key = null;
     HashMap<String , ClientS> clients = new HashMap<String , ClientS>();
     ArrayList<Integer> usedSids = new ArrayList<Integer>();
-    KeyStore keyStore;
+    transient KeyStore keyStore;
 
     public Server() {
         try {
@@ -42,8 +40,26 @@ public class Server {
     }
 
     public String exchangeKeys(String id, String clientKey) {
-        ClientS client = new ClientS(id, stringToKey(clientKey));
-        clients.put(id , client );
+        try {
+            keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(new FileInputStream("server.p12"), "password".toCharArray());
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (CertificateException e) {
+            e.printStackTrace();
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+
+        if( !clients.containsKey(id) ){
+            ClientS client = new ClientS(id, stringToKey(clientKey));
+            clients.put(id , client );
+        }
 
         Certificate certificate = null;
         PublicKey publicKeyClient = null;
@@ -147,7 +163,63 @@ public class Server {
     }
 
     public String handleMessage(String messageReq) {
-        return null;
+
+        String[] params = messageReq.split(";");
+        String msg= "404";
+
+        ClientS client = clients.get( params[1] );
+        int transactionId = Integer.parseInt(params[2]) * Integer.parseInt(params[3]) ;
+        switch(params[0]) {
+            case "1":
+                msg = openAccount( client , params[4] );
+                break;
+            case "2":
+                msg = sendAmount( client , params[4] , params[5] , Integer.parseInt(params[6]) , transactionId );
+                break;
+            case "3":
+                msg = checkAccount( client , params[4] );
+                break;
+            case "4":
+                msg = receiveAmount( client , params[4] );
+                break;
+            case "5":
+                msg = auditAccount( client , params[4] );
+                break;
+        }
+
+        return params[2]+";"+params[3]+";"+msg ;
+    }
+
+    private String auditAccount(ClientS client, String accountPK) {
+        return client.getHistory( stringToKey(accountPK) );
+    }
+
+    private String receiveAmount( ClientS client, String accountPK ) {
+        client.receiveAmount( stringToKey(accountPK) );
+        return "200";
+    }
+
+    private String checkAccount(ClientS client, String accountPK ) {
+        return client.checkAccount( stringToKey(accountPK) );
+
+    }
+
+    private String sendAmount(ClientS client , String sourceAccount, String destAccount, int amount , int tid) {
+        client.sendAmount(stringToKey( sourceAccount ) , stringToKey( destAccount ) , amount , tid );
+
+        return "200";
+    }
+
+    public String openAccount( ClientS client , String accountPublicKey){
+
+        PublicKey aPK = stringToKey(accountPublicKey);
+        int status = client.createAccount( aPK );
+        if(status == -1){
+            return "403";
+        }
+        else
+            return "200";
+
     }
 
     public String closeConnection(String id) {
@@ -156,5 +228,28 @@ public class Server {
         client.setSID(-1);
         client.setSeqNo(0);
         return msg;
+    }
+
+    public void shutDown() {
+        Set<String> ids = clients.keySet();
+        for (String id : ids ) {
+            closeConnection( id );
+        }
+        saveState();
+
+    }
+
+    public void saveState(){
+        try {
+            FileOutputStream fos = new FileOutputStream("server.txt");
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(this);
+            fos.close();
+            oos.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

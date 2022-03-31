@@ -66,7 +66,7 @@ public class ClientMain {
 		}
 		System.out.println("Done !\n");
 		System.out.println("Connecting to server ...\n");
-		int value = client.connect( 0 );
+		int value = client.connect( 0 , tokens1.get(1));
 		if(value == -2 ){
 			System.out.println(" Could not connect to server. Sorry \n");
 			return ;
@@ -76,11 +76,11 @@ public class ClientMain {
 		do {
 			try {
 				System.out.println("Select an action to perform: \n" +
-						"1.- Open an account ( account alias )\n" +
-						"2.- Send amount (source account alias & destination account alias & amount needed)\n" +
-						"3.- Check account (account alias needed ) \n" +
-						"4.- Receive amount (account alias needed) \n" +
-						"5.- Audit (account alias needed)  \n" +
+						"1.- Open an account ( account alias _ account password )\n" +
+						"2.- Send amount (source account alias _ destination account alias _ amount needed _ account password)\n" +
+						"3.- Check account (account alias needed _ account password) \n" +
+						"4.- Receive amount (account alias needed_ account password) \n" +
+						"5.- Audit (account alias needed_ account password)  \n" +
 						"6.- Exit\n");
 				System.out.printf("> ");
 				tokens.clear();
@@ -97,7 +97,7 @@ public class ClientMain {
 						client.pingWorking( );
 						break;
 					case "1":
-						status = client.openAccount( tokens.get(1) , 0 );
+						status = client.openAccount( tokens.get(1) , 0 , tokens.get(2) );
 						if(status == -1)
 							System.out.println("Something went wrong. Try Again");
 						else if(status == -2)
@@ -108,7 +108,7 @@ public class ClientMain {
 							System.out.println("Unknown error");
 						break;
 					case "2":
-						status = client.sendAmount( tokens.get(1) , tokens.get(2) , Integer.parseInt( tokens.get(3) ) , 0 );
+						status = client.sendAmount( tokens.get(1) , tokens.get(2) , Integer.parseInt( tokens.get(3) ) , 0 , tokens.get(4));
 						if(status == -1)
 							System.out.println("Something went wrong. Try Again \n");
 						else if(status == -2)
@@ -121,7 +121,7 @@ public class ClientMain {
 							System.out.println("Unknown error");
 						break;
 					case "3":
-						status1 = client.checkAccount( tokens.get(1) , 0 );
+						status1 = client.checkAccount( tokens.get(1) , 0 , tokens.get(2));
 						if( status1.equals("-1") )
 							System.out.println("Something went wrong. Try Again \n");
 						else if(status1 == "-2")
@@ -130,7 +130,7 @@ public class ClientMain {
 							System.out.println("You have pending money entries to accept !!\n");
 							System.out.println(status1);
 						}
-						else if( status1.length() > 7 ) {
+						else if( status1.length() < 7 ) {
 							System.out.println("Your balance is:");
 							System.out.println(">" + status1 + "\n");
 						}
@@ -138,7 +138,7 @@ public class ClientMain {
 							System.out.println("Unknown error");
 						break;
 					case "4":
-						status = client.receiveAmount( tokens.get(1) , 0);
+						status = client.receiveAmount( tokens.get(1) , 0 , tokens.get(2) );
 						if(status == -1)
 							System.out.println("Something went wrong. Try Again \n");
 						else if(status == -2)
@@ -149,11 +149,13 @@ public class ClientMain {
 							System.out.println("Unknown error");
 						break;
 					case "5":
-						status1 = client.audit( tokens.get(1) , 0);
+						status1 = client.audit( tokens.get(1) , 0 , tokens.get(2));
 						if(status1.equals("-1"))
 							System.out.println("Something went wrong. Try Again");
 						else if(status1 == "-2")
 							System.out.println("Couldn't reach the server. Try again later");
+						else if(status1 == "2")
+							System.out.println("No transactions for this account yet !!");
 						else if(status1.length() > 7 ) {
 							System.out.println("List of accounts transactions:");
 							System.out.println(status1 + "\n");

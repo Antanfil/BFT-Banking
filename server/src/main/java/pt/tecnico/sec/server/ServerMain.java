@@ -2,10 +2,10 @@ package pt.tecnico.sec.server;
 
 import io.grpc.BindableService;
 import io.grpc.ServerBuilder;
-import java.io.IOException;
+
+import java.io.*;
 
 
-import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -14,7 +14,7 @@ import java.util.*;
 
 public class ServerMain {
 
-	public static void main(String[] args) throws IOException, InterruptedException {
+	public static void main(String[] args) throws IOException {
 		System.out.println(ServerMain.class.getSimpleName());
 
 		// receive and print arguments
@@ -25,8 +25,28 @@ public class ServerMain {
 
 		final String Hhost = args[0];
 		final int Hport = Integer.parseInt(args[1]);
-		
-		final Server server = new Server();
+
+		File file = new File("server.txt" );
+
+		Server server;
+		if( file.createNewFile() ){
+			server = new Server();
+			server.saveState();
+		}
+		else{
+			try {
+				FileInputStream fis = new FileInputStream(file);
+				ObjectInputStream ois = new ObjectInputStream(fis);
+				server = (Server) ois.readObject();
+				fis.close();
+				ois.close();
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+				server = new Server();
+			}
+		}
+
+
 		final BindableService impl = (BindableService) new ServerImpl(server);
 
 
@@ -42,9 +62,15 @@ public class ServerMain {
 		System.out.println("Server started");
 		
 		// Do not exit the main thread. Wait until server is terminated.
-		serverServer.awaitTermination();
+		try {
+			serverServer.awaitTermination();
+			serverServer.shutdown();
+		} catch (InterruptedException e) {
+			System.out.println("Shutting Down");
+			server.shutDown();
+			e.printStackTrace();
+		}
 
-		
 	}
 	
 }
