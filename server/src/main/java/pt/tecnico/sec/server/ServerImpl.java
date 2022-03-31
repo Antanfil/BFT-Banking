@@ -33,19 +33,6 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
         _server = server;
     }
 
-    @Override
-    public void ping(PingRequest request, StreamObserver<PingResponse> responseObserver) {
-        String input = request.getInput();
-        String output = "Hello " + input + "!";
-
-        if (input == null || input.isBlank()) {
-            responseObserver.onError(INVALID_ARGUMENT.withDescription("Input cannot be empty!").asRuntimeException());
-        }
-
-        PingResponse resp = PingResponse.newBuilder().setOutput(output).build();
-        responseObserver.onNext(resp);
-        responseObserver.onCompleted();
-    }
 
     @Override
     public void send(MessageRequest request, StreamObserver<MessageResponse> responseObserver) {

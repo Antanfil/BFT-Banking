@@ -4,14 +4,6 @@
 syntax = "proto3";
 package pt.tecnico.sec.server.grpc;
 
-message PingRequest {
-  string input = 1;
-}
-
-message PingResponse {
-	string output = 1;
-}
-
 message MessageRequest{
   string message = 1;
   bytes hash = 2;
@@ -23,6 +15,5 @@ message MessageResponse{
 }
 
 service ServerService {
-  rpc ping(PingRequest) returns (PingResponse);
   rpc send(MessageRequest) returns (MessageResponse);
 }

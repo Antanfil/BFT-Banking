@@ -30,6 +30,10 @@ public class Account implements Serializable {
     }
 
     public Transaction createOutgoingTransaction(PublicKey dest, int amount, int tid) {
+        if ( amount > this.balance ){
+            return null;
+        }
+
         Transaction transaction = new Transaction(tid , accountPK , dest , amount , 1 );
         transactionHistory.add(transaction);
         balance = balance - amount;
