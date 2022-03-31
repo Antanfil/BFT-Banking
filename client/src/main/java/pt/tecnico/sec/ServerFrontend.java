@@ -161,7 +161,6 @@ public class ServerFrontend {
 
 
         }
-        System.out.println(messageResponse);
         return messageResponse;
 
     }

@@ -13,6 +13,7 @@ import javax.crypto.NoSuchPaddingException;
 
 import static io.grpc.Status.INVALID_ARGUMENT;
 
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -24,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
+
 
     Server _server;
 
@@ -44,6 +46,7 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
         responseObserver.onNext(resp);
         responseObserver.onCompleted();
     }
+
     @Override
     public void send(MessageRequest request, StreamObserver<MessageResponse> responseObserver) {
         String messageReq = request.getMessage();
@@ -52,58 +55,63 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
         byte[] signature = signHashResponse.toByteArray();
 
         String[] params = messageReq.split(";");
-        if( params[0].equals("0")){
-            System.out.println( params[1] );
-            String serverPublicKey = _server.exchangeKeys(  params[1] , params[2] );
-            MessageResponse resp= MessageResponse.newBuilder().setMessage(serverPublicKey).build();
+        if (params[0].equals("0")) {
+            System.out.println(params[1]);
+            String serverPublicKey = _server.exchangeKeys(params[1], params[2]);
+            MessageResponse resp = MessageResponse.newBuilder().setMessage(serverPublicKey).build();
             responseObserver.onNext(resp);
             responseObserver.onCompleted();
-        }
-        else if( params[0].equals("SYN") ){
-            if ( !verifyMessage( messageReq , signature , _server.getClientPublicKey( params[1] ) ) ){
-                responseObserver.onError( null );
-            }
-            String sid = _server.createConnection( params[1] );
-            ByteString signatureResp = ByteString.copyFrom( _server.getServerSignature( sid ) );
 
-            MessageResponse resp= MessageResponse.newBuilder().setMessage(sid).setHash(signatureResp).build();
+            _server.saveState();
+
+        } else if (params[0].equals("SYN")) {
+            if (!verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1]))) {
+                responseObserver.onError(null);
+            }
+            String sid = _server.createConnection(params[1]);
+            ByteString signatureResp = ByteString.copyFrom(_server.getServerSignature(sid));
+
+            MessageResponse resp = MessageResponse.newBuilder().setMessage(sid).setHash(signatureResp).build();
             responseObserver.onNext(resp);
             responseObserver.onCompleted();
-        }
-        else if( params[0].equals("FIN") ){
+
+            _server.saveState();
+
+        } else if (params[0].equals("FIN")) {
 
 
-            if ( !verifyMessage( messageReq , signature , _server.getClientPublicKey( params[1] ) ) ){
-                responseObserver.onError( null );
+            if (!verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1]))) {
+                responseObserver.onError(null);
             }
-            if( !_server.verifySessionData( params[1] , params[2] , params[3] )){
-                responseObserver.onError( null );
+            if (!_server.verifySessionData(params[1], params[2], params[3])) {
+                responseObserver.onError(null);
             }
-            String messageResp = _server.closeConnection( params[1] );
-            ByteString signatureResp = ByteString.copyFrom( _server.getServerSignature( messageResp ) );
+            String messageResp = _server.closeConnection(params[1]);
+            ByteString signatureResp = ByteString.copyFrom(_server.getServerSignature(messageResp));
 
-            MessageResponse resp= MessageResponse.newBuilder().setMessage( messageResp ).setHash(signatureResp).build();
+            MessageResponse resp = MessageResponse.newBuilder().setMessage(messageResp).setHash(signatureResp).build();
             responseObserver.onNext(resp);
             responseObserver.onCompleted();
-        }
-        else{
-            if( params[0] == "1" || params[0] == "6")
-                verifyMessage( messageReq , signature , _server.getClientPublicKey( params[1] ) );
+            _server.saveState();
+        } else {
+            if (params[0].equals("1"))
+                verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1]));
             else
-                verifyMessage( messageReq , signature , _server.stringToKey( params[3] ) );
+                verifyMessage(messageReq, signature, _server.stringToKey(params[4]));
 
-            _server.verifySessionData(params[1] , params[2] , params[3] );
+            _server.verifySessionData(params[1], params[2], params[3]);
 
-            String messageResp = _server.handleMessage( messageReq );
-            ByteString signatureResp = ByteString.copyFrom( _server.getServerSignature( messageResp ) );
+            String messageResp = _server.handleMessage(messageReq);
+            ByteString signatureResp = ByteString.copyFrom(_server.getServerSignature(messageResp));
 
-            MessageResponse resp= MessageResponse.newBuilder().setMessage(messageResp).setHash(signatureResp).build();
+            MessageResponse resp = MessageResponse.newBuilder().setMessage(messageResp).setHash(signatureResp).build();
             responseObserver.onNext(resp);
             responseObserver.onCompleted();
-
+            _server.saveState();
         }
 
     }
+
     public boolean verifyMessage(String message, byte[] encryptedMessageHash, PublicKey publicKey) {
 
         byte[] decryptedMessageHash = null;
@@ -143,4 +151,6 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
 
     }
 
+
 }
+

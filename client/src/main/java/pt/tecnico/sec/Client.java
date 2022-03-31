@@ -17,7 +17,6 @@ public class Client {
     transient ServerFrontend _frontend;
     private int id;
     KeyStore  keyStore;
-    private String password;
 
 
     private int SSID;
@@ -100,26 +99,24 @@ public class Client {
 
     }
 
-    public int connect( int iter ) {
+    public int connect( int iter , String password ) {
         if(iter >= 10){
             return -2;
         }
 
         byte[] signature = null;
-        signature = getSignature("client_"+id ,"SYN;"+id);
+        signature = getSignature("client_"+id ,"SYN;"+id , password);
         String messageResponse = _frontend.connect("SYN;"+id, signature, serverPK );
         if(messageResponse == "-2"){
-            return connect( iter +1);
+            return connect( iter +1, password);
         }
         SSID =  Integer.parseInt(messageResponse);
         SeqNo = 1;
 
-        System.out.println("\n\n\n\n"+SSID+"\n\n\n\n");
         return 0;
     }
 
     public void loadKeyStore( String password ){
-        this.password = password;
         try {
             keyStore = KeyStore.getInstance("PKCS12");
             keyStore.load(new FileInputStream("client_"+this.id+".p12"), password.toCharArray());
@@ -138,7 +135,7 @@ public class Client {
 
     }
 
-    public int openAccount( String accountAlias , int iter) {
+    public int openAccount( String accountAlias , int iter, String password) {
         if(iter >= 10){
             return -2;
         }
@@ -148,10 +145,10 @@ public class Client {
 
         String message = "1;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient;
         byte[] signature = null;
-        signature = getSignature(accountAlias , message);
+        signature = getSignature("client_"+id , message, password);
         String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
         if(messageResponse == "-2"){
-            return openAccount( accountAlias , iter +1);
+            return openAccount( accountAlias , iter +1 , password );
         }
         String[] params = messageResponse.split(";");
 
@@ -164,7 +161,7 @@ public class Client {
             return -1;
     }
 
-    public int sendAmount(String sourceAlias, String destinationAlias, int amount, int iter ) {
+    public int sendAmount(String sourceAlias, String destinationAlias, int amount, int iter, String password ) {
         if(iter >= 10){
             return -2;
         }
@@ -174,10 +171,10 @@ public class Client {
         String destPK = this.getPublicKey(destinationAlias);
         String message = "2;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+sourcePK+";"+destPK+";"+Integer.toString(amount);
         byte[] signature = null;
-        signature = getSignature(sourceAlias , message);
+        signature = getSignature(sourceAlias , message, password);
         String messageResponse = _frontend.send(message, signature , serverPK, SSID , SeqNo);
         if(messageResponse == "-2"){
-            sendAmount( sourceAlias , destinationAlias , amount, iter+1);
+            sendAmount( sourceAlias , destinationAlias , amount, iter+1, password);
         }
 
         String[] params = messageResponse.split(";");
@@ -194,7 +191,7 @@ public class Client {
 
     }
 
-    public String checkAccount(String accountAlias, int iter ) {
+    public String checkAccount(String accountAlias, int iter, String password ) {
         if(iter >= 10){
             return "-2";
         }
@@ -204,10 +201,10 @@ public class Client {
 
         String message = "3;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient;
         byte[] signature = null;
-        signature = getSignature(accountAlias , message);
+        signature = getSignature(accountAlias , message, password);
         String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
         if(messageResponse == "-2"){
-            return checkAccount( accountAlias , iter +1);
+            return checkAccount( accountAlias , iter +1, password);
         }
 
         String[] params = messageResponse.split(";");
@@ -223,7 +220,7 @@ public class Client {
         else if(status.equals("201") ){
             result = balance;
             for (int i = 4; i < params.length ; i++ ) {
-                result.concat( "\n"+params[i] );
+                result = result + "\n"+params[i] ;
             }
             return result;
         }
@@ -231,7 +228,7 @@ public class Client {
             return "-1";
     }
 
-    public int receiveAmount(String accountAlias, int iter ) {
+    public int receiveAmount(String accountAlias, int iter, String password ) {
         if(iter >= 10){
             return -2;
         }
@@ -242,10 +239,10 @@ public class Client {
         String message = "4;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient;
 
         byte[] signature = null;
-        signature = getSignature(accountAlias , message);
+        signature = getSignature(accountAlias , message, password);
         String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
         if(messageResponse == "-2"){
-            return receiveAmount( accountAlias , iter +1);
+            return receiveAmount( accountAlias , iter +1, password );
         }
 
         String[] params = messageResponse.split(";");
@@ -258,7 +255,7 @@ public class Client {
             return -1;
     }
 
-    public String audit(String accountAlias, int iter ) {
+    public String audit(String accountAlias, int iter, String password ) {
         if(iter >= 10){
             return "-2";
         }
@@ -268,10 +265,10 @@ public class Client {
 
         String message = "5;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient;
         byte[] signature = null;
-        signature = getSignature(accountAlias , message);
+        signature = getSignature(accountAlias , message , password);
         String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
         if(messageResponse == "-2"){
-            return audit( accountAlias , iter +1);
+            return audit( accountAlias , iter +1, password);
         }
 
         String result="";
@@ -281,12 +278,16 @@ public class Client {
         String status = params[2];
 
         incSeqNo();
-        if(status.equals("200")){
+        if(status.equals("200")) {
+                return "2";
+        }
+        else if(status.equals("201")){
             for (int i = 3; i < params.length ; i++ ) {
-                result.concat( "\n"+params[i] );
+                result = result +  "\n"+params[i] ;
             }
             return result;
         }
+
         else
             return "-1";
     }
@@ -298,7 +299,7 @@ public class Client {
         byte[] signature = null;
 
         String message = "FIN;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo) ;
-        signature = getSignature( "client_"+id ,message);
+        signature = getSignature( "client_"+id ,message, "password");
         String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
         if(messageResponse == "-2"){
             return closeConnection( iter +1);
@@ -318,7 +319,7 @@ public class Client {
 
     }
 
-    public byte[] getSignature(String alias, String message) {
+    public byte[] getSignature(String alias, String message, String password) {
 
         byte[] digitalSignature = null;
         MessageDigest md = null;
