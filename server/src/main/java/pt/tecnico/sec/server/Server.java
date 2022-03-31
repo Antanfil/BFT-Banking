@@ -19,6 +19,7 @@ public class Server implements Serializable {
     HashMap<String , ClientS> clients = new HashMap<String , ClientS>();
     ArrayList<Integer> usedSids = new ArrayList<Integer>();
     transient KeyStore keyStore;
+    String lastMessage = "";
 
     public Server() {
         try {
@@ -37,6 +38,9 @@ public class Server implements Serializable {
             e.printStackTrace();
         }
 
+    }
+    public String getLastMessage() {
+        return lastMessage;
     }
 
     public String exchangeKeys(String id, String clientKey) {
@@ -150,15 +154,19 @@ public class Server implements Serializable {
         return digitalSignature;
     }
 
-    public boolean verifySessionData(String id, String sid , String seqNo) {
+    public int verifySessionData(String id, String sid , String seqNo) {
         ClientS client = clients.get( id );
 
         if( Integer.toString(client.getSID()).equals(sid) &&
                                         Integer.toString(client.getSeqNo() + 1).equals(seqNo) ){
-            client.setSeqNo( Integer.parseInt(seqNo) );
-            return true;
+            client.setSeqNo( Integer.parseInt(seqNo)) ;
+            return 0;
         }
-        return false;
+        if(Integer.toString(client.getSID()).equals(sid) &&
+                client.getSeqNo() + 1 > Integer.parseInt(seqNo) ){
+            return -2;
+        }
+        return -1;
 
     }
 
@@ -186,6 +194,7 @@ public class Server implements Serializable {
                 msg = auditAccount( client , params[4] );
                 break;
         }
+        lastMessage = params[2]+";"+params[3]+";"+msg;
 
         return params[2]+";"+params[3]+";"+msg ;
     }
