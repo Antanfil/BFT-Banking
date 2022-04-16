@@ -1,0 +1,9 @@
+.idea/
+.DS_Store
+*/.DS_Store
+*/target/
+*/*.p12
+*.p12
+*.txt
+*/*.txt
+
