@@ -111,7 +111,7 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
                 responseObserver.onError(null);
             }
 
-            String messageResp = _server.handleMessage(messageReq);
+            String messageResp = _server.handleMessage(messageReq, signature);
             ByteString signatureResp = ByteString.copyFrom(_server.getServerSignature(messageResp));
 
             MessageResponse resp = MessageResponse.newBuilder().setMessage(messageResp).setHash(signatureResp).build();

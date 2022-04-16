@@ -21,6 +21,8 @@ public class Server implements Serializable {
     ArrayList<Integer> usedSids = new ArrayList<Integer>();
     transient KeyStore keyStore;
     String lastMessage = "";
+    transient ArrayList<MessageLog> logger = new ArrayList<MessageLog>();
+
 
     public Server() {
         try {
@@ -171,7 +173,7 @@ public class Server implements Serializable {
 
     }
 
-    public String handleMessage(String messageReq) {
+    public String handleMessage(String messageReq, byte[] signature) {
 
         String[] params = messageReq.split(";");
         String msg= "404";
@@ -181,15 +183,18 @@ public class Server implements Serializable {
         switch(params[0]) {
             case "1":
                 msg = openAccount( client , params[4] );
+                this.logMessage(messageReq, signature);
                 break;
             case "2":
                 msg = sendAmount( client , params[4] , params[5] , Integer.parseInt(params[6]) , transactionId );
+                this.logMessage(messageReq, signature);
                 break;
             case "3":
                 msg = checkAccount( client , params[4] );
                 break;
             case "4":
                 msg = receiveAmount( client , params[4] );
+                this.logMessage(messageReq, signature);
                 break;
             case "5":
                 msg = auditAccount( client , params[4] );
@@ -215,6 +220,10 @@ public class Server implements Serializable {
     }
 
     private String sendAmount(ClientS client , String sourceAccount, String destAccount, int amount , int tid) {
+        if (sourceAccount.equals(destAccount))
+            return "401";
+        else if(amount <0)
+            return "402";
         Transaction t = client.sendAmount(stringToKey( sourceAccount ) , stringToKey( destAccount ) , amount , tid );
         if (t == null)
             return "400";
@@ -248,6 +257,11 @@ public class Server implements Serializable {
         }
         saveState();
 
+    }
+
+    public void logMessage(String message, byte[] signature){
+        MessageLog log = new MessageLog(message,signature);
+        this.logger.add(log);
     }
 
     public void saveState(){

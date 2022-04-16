@@ -131,6 +131,10 @@ public class ClientMain {
 								System.out.println("Money Sent !! Awaiting confirmation by recipient.\n");
 							else if(status == 1)
 								System.out.println("You don't have enough money in this account :( \n");
+							else if (status == 2)
+								System.out.println("You can't send money to your own account :( \n");
+							else if (status == 3)
+								System.out.println("Your send amount must be higher than 0! \n");
 							else
 								System.out.println("Unknown error");
 						}

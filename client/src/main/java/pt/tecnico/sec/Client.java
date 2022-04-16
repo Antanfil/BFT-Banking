@@ -184,6 +184,10 @@ public class Client {
             return 0;
         else if(status.equals("400"))
             return 1;
+        else if(status.equals("401"))
+            return 2;
+        else if(status.equals("402"))
+            return 3;
         else
             return -1;
 
