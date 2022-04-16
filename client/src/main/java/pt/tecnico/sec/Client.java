@@ -13,18 +13,22 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
+import java.util.Random;
 
 public class Client {
 
     transient ServerFrontend _frontend;
     private int id;
     KeyStore  keyStore;
+    ArrayList<Integer> usedSids = new ArrayList<Integer>();
 
 
     private int SSID;
     int SeqNo = 0;
-    PublicKey serverPK = null;
+    List<PublicKey> serverPK = new ArrayList<>();
 
 
     public Client( ServerFrontend frontend , int id){
@@ -63,7 +67,7 @@ public class Client {
         return pbKey;
     }
 
-    public PublicKey getServerPK() {
+    public List<PublicKey> getServerPK() {
         return serverPK;
     }
 
@@ -72,25 +76,27 @@ public class Client {
         String publicKeyClient = this.getPublicKey("client_"+this.id);
 
         String message = "0;"+id+";"+publicKeyClient;
-        String serverKey = _frontend.exchange(message);
+        List<String> serverKey = _frontend.exchange(message);
+
+
         PublicKey publicKey = null;
         byte[] byte_Serverpubkey;
+        for(String s : serverKey){
+            try {
+                byte_Serverpubkey = Base64.getDecoder().decode( s );
+                KeyFactory keyFactory = null;
+                keyFactory = KeyFactory.getInstance("RSA");
+                serverPK.add( keyFactory.generatePublic(new X509EncodedKeySpec(byte_Serverpubkey)) );
 
-        try {
-            byte_Serverpubkey = Base64.getDecoder().decode(serverKey);
-            KeyFactory keyFactory = null;
-            keyFactory = KeyFactory.getInstance("RSA");
-            serverPK =  keyFactory.generatePublic(new X509EncodedKeySpec(byte_Serverpubkey));
-
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            return -1;
-        } catch (InvalidKeySpecException e) {
-            e.printStackTrace();
-            return -1;
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+                return -1;
+            } catch (InvalidKeySpecException e) {
+                e.printStackTrace();
+                return -1;
+            }
         }
-        return 0;
-
+            return 0;
 
     }
 
@@ -99,13 +105,21 @@ public class Client {
             return -2;
         }
 
+        Random random = new Random();
+        int x = random.nextInt(100);
+        while( usedSids.contains(x) ){
+            random = new Random();
+            x = random.nextInt(100);
+        }
+        usedSids.add(x);
+
         byte[] signature = null;
-        signature = getSignature("client_"+id ,"SYN;"+id , password);
-        String messageResponse = _frontend.connect("SYN;"+id, signature, serverPK );
+        signature = getSignature("client_"+id ,"SYN;"+id+";"+x , password);
+        String messageResponse = _frontend.connect("SYN;"+id+";"+x, signature, serverPK );
         if(messageResponse == "-2"){
             return connect( iter +1, password);
         }
-        SSID =  Integer.parseInt(messageResponse);
+        SSID =  x ;
         SeqNo = 1;
 
         return 0;

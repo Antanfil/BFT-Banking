@@ -18,7 +18,7 @@ public class Server implements Serializable {
 
     PublicKey key = null;
     HashMap<String , ClientS> clients = new HashMap<String , ClientS>();
-    ArrayList<Integer> usedSids = new ArrayList<Integer>();
+
     transient KeyStore keyStore;
     String lastMessage = "";
 
@@ -101,19 +101,12 @@ public class Server implements Serializable {
         return client.getClientPK() ;
     }
 
-    public String createConnection( String id) {
+    public String createConnection( String id , String SID) {
         ClientS client = clients.get( id );
-        boolean exists = false;
-        Random random = new Random();
-        int x = random.nextInt(100);
-        while( usedSids.contains(x) ){
-            random = new Random();
-            x = random.nextInt(100);
-        }
-        usedSids.add(x);
-        client.setSID(x);
+
+        client.setSID(  Integer.parseInt(SID) );
         client.setSeqNo(0);
-        return Integer.toString(x);
+        return Integer.toString( 200);
 
     }
 
@@ -158,6 +151,12 @@ public class Server implements Serializable {
     public int verifySessionData(String id, String sid , String seqNo) {
         ClientS client = clients.get( id );
 
+        System.out.println("Provided: \n\n");
+        System.out.println("Clid: "+ id + " SID: "+ sid + " SeqNo: " +seqNo);
+
+        System.out.println("Existing: \n\n");
+        System.out.println("Clid: "+ client.getId() + " SID: "+ client.getSID() + " SeqNo: " + client.getSeqNo());
+
         if( Integer.toString(client.getSID()).equals(sid) &&
                 Integer.toString(client.getSeqNo() + 1).equals(seqNo) ){
             client.setSeqNo( Integer.parseInt(seqNo)) ;
@@ -167,6 +166,7 @@ public class Server implements Serializable {
                 client.getSeqNo() + 1 > Integer.parseInt(seqNo) ){
             return -2;
         }
+        System.out.println("RETURN -1");
         return -1;
 
     }
@@ -246,7 +246,7 @@ public class Server implements Serializable {
         for (String id : ids ) {
             closeConnection( id );
         }
-        saveState();
+        //saveState();
 
     }
 
