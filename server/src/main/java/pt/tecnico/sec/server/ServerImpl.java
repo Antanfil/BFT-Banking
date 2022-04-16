@@ -45,20 +45,20 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
             responseObserver.onNext(resp);
             responseObserver.onCompleted();
 
-            _server.saveState();
+            //_server.saveState();
 
         } else if (params[0].equals("SYN")) {
             if (!verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1])) ) {
                 responseObserver.onError(null);
             }
-            String sid = _server.createConnection(params[1]);
+            String sid = _server.createConnection(params[1] , params[2]);
             ByteString signatureResp = ByteString.copyFrom( _server.getServerSignature(sid) );
 
             MessageResponse resp = MessageResponse.newBuilder().setMessage(sid).setHash(signatureResp).build();
             responseObserver.onNext(resp);
             responseObserver.onCompleted();
 
-            _server.saveState();
+            //_server.saveState();
 
         } else if (params[0].equals("FIN")) {
 
@@ -75,7 +75,7 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
                 MessageResponse resp = MessageResponse.newBuilder().setMessage(repeated).setHash(repeatedResp).build();
                 responseObserver.onNext(resp);
                 responseObserver.onCompleted();
-                _server.saveState();
+                //_server.saveState();
             }
             String messageResp = _server.closeConnection(params[1]);
             ByteString signatureResp = ByteString.copyFrom(_server.getServerSignature(messageResp));
@@ -83,7 +83,7 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
             MessageResponse resp = MessageResponse.newBuilder().setMessage(messageResp).setHash(signatureResp).build();
             responseObserver.onNext(resp);
             responseObserver.onCompleted();
-            _server.saveState();
+            //_server.saveState();
         } else {
             if (params[0].equals("1")) {
                 if (!verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1]))) {
@@ -105,7 +105,7 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
                 MessageResponse resp = MessageResponse.newBuilder().setMessage(repeated).setHash(repeatedResp).build();
                 responseObserver.onNext(resp);
                 responseObserver.onCompleted();
-                _server.saveState();
+                //_server.saveState();
             }
             if(validity == -1){
                 responseObserver.onError(null);
@@ -117,7 +117,7 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
             MessageResponse resp = MessageResponse.newBuilder().setMessage(messageResp).setHash(signatureResp).build();
             responseObserver.onNext(resp);
             responseObserver.onCompleted();
-            _server.saveState();
+            //_server.saveState();
         }
 
     }

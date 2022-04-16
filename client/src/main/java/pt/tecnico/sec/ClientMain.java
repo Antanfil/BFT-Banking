@@ -24,13 +24,14 @@ public class ClientMain {
  		}
  
  		final String host = args[0];
- 		final int port = Integer.parseInt(args[1]);
+ 		final int port1 = Integer.parseInt(args[1]);
+		 final int replicas = Integer.parseInt(args[2]);
 		int clientID = 0;
 		boolean again = true;
 
 
  		ServerFrontend frontend = null ;
-		frontend = new ServerFrontend( host , port );
+		frontend = new ServerFrontend( host , port1 , replicas );
 
 
 		String command;
@@ -63,11 +64,13 @@ public class ClientMain {
 		client.loadKeyStore( tokens1.get(1) );
 		System.out.println("Done !\n");
 		System.out.println("Exchanging Keys with the Server ...\n");
+
 		int value0 = client.exchangeKeys();
 		if(value0 == -1 ){
 			System.out.println(" Could not exchange Keys. Sorry \n");
 			return ;
 		}
+
 		System.out.println("Done !\n");
 		System.out.println("Connecting to server ...\n");
 		int value = client.connect( 0 , tokens1.get(1));

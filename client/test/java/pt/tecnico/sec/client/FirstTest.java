@@ -18,7 +18,7 @@ public class FirstTest {
         try {
             String host = "localhost";
             int port = 8080;
-            _frontend = new ServerFrontend(host, port);
+            _frontend = new ServerFrontend(host, port , 5);
             _client = new Client(_frontend, 1);
             _client.loadKeyStore("password");
             _client.exchangeKeys();
