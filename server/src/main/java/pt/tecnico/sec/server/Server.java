@@ -1,5 +1,6 @@
 package pt.tecnico.sec.server;
 
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -158,7 +159,7 @@ public class Server implements Serializable {
         ClientS client = clients.get( id );
 
         if( Integer.toString(client.getSID()).equals(sid) &&
-                                        Integer.toString(client.getSeqNo() + 1).equals(seqNo) ){
+                Integer.toString(client.getSeqNo() + 1).equals(seqNo) ){
             client.setSeqNo( Integer.parseInt(seqNo)) ;
             return 0;
         }

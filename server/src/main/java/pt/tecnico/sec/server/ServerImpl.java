@@ -19,10 +19,7 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
 
@@ -43,7 +40,6 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
 
         String[] params = messageReq.split(";");
         if (params[0].equals("0")) {
-            System.out.println(params[1]);
             String serverPublicKey = _server.exchangeKeys(params[1], params[2]);
             MessageResponse resp = MessageResponse.newBuilder().setMessage(serverPublicKey).build();
             responseObserver.onNext(resp);
@@ -52,11 +48,11 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
             _server.saveState();
 
         } else if (params[0].equals("SYN")) {
-            if (!verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1]))) {
+            if (!verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1])) ) {
                 responseObserver.onError(null);
             }
             String sid = _server.createConnection(params[1]);
-            ByteString signatureResp = ByteString.copyFrom(_server.getServerSignature(sid));
+            ByteString signatureResp = ByteString.copyFrom( _server.getServerSignature(sid) );
 
             MessageResponse resp = MessageResponse.newBuilder().setMessage(sid).setHash(signatureResp).build();
             responseObserver.onNext(resp);
@@ -70,8 +66,16 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
             if (!verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1]))) {
                 responseObserver.onError(null);
             }
-            if (!_server.verifySessionData(params[1], params[2], params[3])) {
-                responseObserver.onError(null);
+            int validity = _server.verifySessionData(params[1], params[2], params[3]);
+            if (validity == -2 ) {
+
+                String repeated = _server.getLastMessage();
+                ByteString repeatedResp = ByteString.copyFrom(_server.getServerSignature(repeated));
+
+                MessageResponse resp = MessageResponse.newBuilder().setMessage(repeated).setHash(repeatedResp).build();
+                responseObserver.onNext(resp);
+                responseObserver.onCompleted();
+                _server.saveState();
             }
             String messageResp = _server.closeConnection(params[1]);
             ByteString signatureResp = ByteString.copyFrom(_server.getServerSignature(messageResp));
@@ -81,17 +85,18 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
             responseObserver.onCompleted();
             _server.saveState();
         } else {
-            if (params[0].equals("1"))
+            if (params[0].equals("1")) {
                 if (!verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1]))) {
                     responseObserver.onError(null);
                 }
-
-            else
+            }
+            else {
                 if (!verifyMessage(messageReq, signature, _server.stringToKey(params[4]))) {
                     responseObserver.onError(null);
                 }
+            }
 
-            int validity = _server.verifySessionData(params[1], params[2], params[3])
+            int validity = _server.verifySessionData(params[1], params[2], params[3]);
             if (validity == -2 ) {
 
                 String repeated = _server.getLastMessage();
@@ -158,4 +163,3 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
 
 
 }
-

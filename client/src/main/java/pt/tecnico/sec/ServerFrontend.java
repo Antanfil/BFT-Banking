@@ -1,27 +1,24 @@
-package pt.tecnico.sec;
-
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+package pt.tecnico.sec.client;
 
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-
-import org.apache.commons.lang3.tuple.Pair;
-import pt.tecnico.sec.server.grpc.*;
 import pt.tecnico.sec.server.grpc.Server.*;
+import pt.tecnico.sec.server.grpc.ServerServiceGrpc;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 
 public class ServerFrontend {
@@ -126,6 +123,9 @@ public class ServerFrontend {
             String[] params = messageResp.getMessage().split(";");
             SSID = params[0];
             SeqNo = params[1];
+
+            System.out.println(SSID);
+            System.out.println(seqNo);
 
 
             messageResponse = messageResp.getMessage();

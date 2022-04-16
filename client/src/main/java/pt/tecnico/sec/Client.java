@@ -1,16 +1,19 @@
-package pt.tecnico.sec;
+package pt.tecnico.sec.client;
 
-import java.io.*;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.*;
-
-import java.security.cert.CertificateException;
-
-import javax.crypto.*;
+import java.util.Base64;
 
 public class Client {
 

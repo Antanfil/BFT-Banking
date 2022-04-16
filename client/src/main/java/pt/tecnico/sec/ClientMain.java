@@ -1,12 +1,16 @@
-package pt.tecnico.sec;
- 
- import java.io.*;
+package pt.tecnico.sec.client;
 
- import java.security.*;
- import java.security.cert.CertificateException;
- import java.util.List;
- import java.util.StringTokenizer;
- import java.util.ArrayList;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.UnrecoverableEntryException;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
 
 public class ClientMain {
  	
