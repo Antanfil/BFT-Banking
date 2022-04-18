@@ -14,10 +14,11 @@ public class ServerMain {
 
 		final String Hhost = args[0];
 		final int Hport = Integer.parseInt(args[1]);
+		final String serverName = args[2];
 
 		
 		// Start the server
-		ServerSetup serverSetup = new ServerSetup(Hhost,Hport);
+		ServerSetup serverSetup = new ServerSetup(Hhost,Hport,serverName);
 
 		serverSetup.start();
 		// Do not exit the main thread. Wait until server is terminated.

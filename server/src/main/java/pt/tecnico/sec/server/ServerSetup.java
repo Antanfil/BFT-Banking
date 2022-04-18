@@ -14,11 +14,14 @@ public class ServerSetup {
 	private Server server;
 
 
-    ServerSetup(String host,int port) throws IOException{
-        File file = new File("server.txt" );
+    ServerSetup(String host,int port, String serverName) throws IOException{
+		System.out.println(serverName);
+		String text = serverName.split("\\.")[0];
+		text = text.concat(".txt");
+        File file = new File(text);
 
 		if( file.createNewFile() ){
-			server = new Server();
+			server = new Server(serverName);
 			server.saveState();
 		}
 		else{
@@ -28,7 +31,7 @@ public class ServerSetup {
 				server = (Server) ois.readObject();
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
-				server = new Server();
+				server = new Server(serverName);
 			}
 		}
 

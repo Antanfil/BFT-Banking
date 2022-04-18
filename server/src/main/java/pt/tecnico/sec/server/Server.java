@@ -22,12 +22,14 @@ public class Server implements Serializable {
     transient KeyStore keyStore;
     String lastMessage = "";
     transient ArrayList<MessageLog> logger = new ArrayList<MessageLog>();
+    String serverName = "";
 
 
-    public Server() {
+    public Server(String serverName) {
         try {
             keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(new FileInputStream("server.p12"), "password".toCharArray());
+            this.serverName = serverName;
+            keyStore.load(new FileInputStream(this.serverName), "password".toCharArray());
 
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
@@ -49,7 +51,7 @@ public class Server implements Serializable {
     public String exchangeKeys(String id, String clientKey) {
         try {
             keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(new FileInputStream("server.p12"), "password".toCharArray());
+            keyStore.load(new FileInputStream(this.serverName), "password".toCharArray());
 
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
@@ -266,7 +268,9 @@ public class Server implements Serializable {
 
     public void saveState(){
         try {
-            FileOutputStream fos = new FileOutputStream("server.txt");
+            String text = serverName.split("\\.")[0];
+            text = text.concat(".txt");
+            FileOutputStream fos = new FileOutputStream(text);
             ObjectOutputStream oos = new ObjectOutputStream(fos);
             oos.writeObject(this);
             fos.close();
