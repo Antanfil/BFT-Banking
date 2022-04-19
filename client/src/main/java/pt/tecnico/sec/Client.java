@@ -104,20 +104,25 @@ public class Client {
         if(iter >= 10){
             return -2;
         }
-
-        Random random = new Random();
-        int x = random.nextInt(100);
-        while( usedSids.contains(x) ){
-            random = new Random();
+        int x;
+        while(true){
+            Random random = new Random();
             x = random.nextInt(100);
-        }
-        usedSids.add(x);
+            while( usedSids.contains(x) ){
+                random = new Random();
+                x = random.nextInt(100);
+            }
+            usedSids.add(x);
 
-        byte[] signature = null;
-        signature = getSignature("client_"+id ,"SYN;"+id+";"+x , password);
-        String messageResponse = _frontend.connect("SYN;"+id+";"+x, signature, serverPK );
-        if(messageResponse == "-2"){
-            return connect( iter +1, password);
+            byte[] signature = null;
+            signature = getSignature("client_"+id ,"SYN;"+id+";"+x , password);
+            String messageResponse = _frontend.connect("SYN;"+id+";"+x, signature, serverPK );
+            System.out.println(messageResponse);
+            if(messageResponse.equals("200"))
+                break;
+            if(messageResponse.equals("-2")){
+                return connect( iter +1, password);
+            }
         }
         SSID =  x ;
         SeqNo = 1;

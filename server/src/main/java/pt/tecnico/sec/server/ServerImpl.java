@@ -51,10 +51,10 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
             if (!verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1])) ) {
                 responseObserver.onError(null);
             }
-            String sid = _server.createConnection(params[1] , params[2]);
-            ByteString signatureResp = ByteString.copyFrom( _server.getServerSignature(sid) );
+            String status = _server.createConnection(params[1] , params[2]);
+            ByteString signatureResp = ByteString.copyFrom( _server.getServerSignature(status) );
 
-            MessageResponse resp = MessageResponse.newBuilder().setMessage(sid).setHash(signatureResp).build();
+            MessageResponse resp = MessageResponse.newBuilder().setMessage(status).setHash(signatureResp).build();
             responseObserver.onNext(resp);
             responseObserver.onCompleted();
 

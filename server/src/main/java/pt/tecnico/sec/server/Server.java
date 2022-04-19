@@ -23,6 +23,7 @@ public class Server implements Serializable {
     String lastMessage = "";
     transient ArrayList<MessageLog> logger = new ArrayList<MessageLog>();
     String serverName = "";
+    ArrayList<Integer> sidList = new ArrayList<Integer>();
 
 
     public Server(String serverName) {
@@ -107,10 +108,12 @@ public class Server implements Serializable {
 
     public String createConnection( String id , String SID) {
         ClientS client = clients.get( id );
-
+        if(sidList.contains(Integer.parseInt(SID)))
+            return "400";
+        sidList.add(Integer.parseInt(SID));
         client.setSID(  Integer.parseInt(SID) );
         client.setSeqNo(0);
-        return Integer.toString( 200);
+        return "200";
 
     }
 
