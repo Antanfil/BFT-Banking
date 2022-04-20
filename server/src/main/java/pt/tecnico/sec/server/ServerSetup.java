@@ -14,14 +14,14 @@ public class ServerSetup {
 	private Server server;
 
 
-    ServerSetup(String host,int port, String serverName) throws IOException{
+    ServerSetup(String host,int port, String serverName , int replicas) throws IOException{
 		System.out.println(serverName);
 		String text = serverName.split("\\.")[0];
 		text = text.concat(".txt");
         File file = new File(text);
 
 		if( file.createNewFile() ){
-			server = new Server(serverName);
+			server = new Server(serverName , port , host , 8080, replicas);
 			server.saveState();
 		}
 		else{
@@ -29,9 +29,10 @@ public class ServerSetup {
 					ObjectInputStream ois = new ObjectInputStream(fis)){
 
 				server = (Server) ois.readObject();
+				server.cleanBroadcastList();
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
-				server = new Server(serverName);
+				server = new Server(serverName, port , host , 8080, replicas);
 			}
 		}
 
@@ -50,6 +51,10 @@ public class ServerSetup {
 	public void start() throws IOException {
 		serverServer.start();
 		System.out.println("Server started, listening on " + serverServer.getPort());
+	}
+
+	public void broadcast(){
+		server.propagatePK();
 	}
 	
 	public void awaitTermination(){

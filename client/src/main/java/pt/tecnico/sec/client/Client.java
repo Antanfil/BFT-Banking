@@ -1,5 +1,8 @@
 package pt.tecnico.sec.client;
 
+import org.apache.commons.lang3.tuple.Pair;
+import pt.tecnico.sec.client.ServerFrontend;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -13,21 +16,20 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class Client {
 
     transient ServerFrontend _frontend;
     private int id;
-    KeyStore  keyStore;
-    ArrayList<Integer> usedSids = new ArrayList<Integer>();
-
-
     private int SSID;
     int SeqNo = 0;
+    KeyStore  keyStore;
+
+
+    ArrayList<Integer> usedSids = new ArrayList<Integer>();
+    HashMap< String ,  Integer> accountsWTS = new HashMap<>();
+    HashMap< String ,  Integer> accountsRTS = new HashMap<>();
     List<PublicKey> serverPK = new ArrayList<>();
 
 
@@ -37,13 +39,15 @@ public class Client {
     }
 
 
+
+
+    /*
+    * GETTERS AND SETTERS =================================
+    */
     public int getId() {
         return id;
     }
 
-    public void incSeqNo(){
-        SeqNo ++;
-    }
     public int getSeqNo() {
         return SeqNo;
     }
@@ -71,6 +75,14 @@ public class Client {
         return serverPK;
     }
 
+
+
+
+
+    /*
+    * INITIALIZATION OPERATIONS =================================
+    */
+
     public int exchangeKeys() {
 
         String publicKeyClient = this.getPublicKey("client_"+this.id);
@@ -78,8 +90,6 @@ public class Client {
         String message = "0;"+id+";"+publicKeyClient;
         List<String> serverKey = _frontend.exchange(message);
 
-
-        PublicKey publicKey = null;
         byte[] byte_Serverpubkey;
         for(String s : serverKey){
             try {
@@ -96,7 +106,8 @@ public class Client {
                 return -1;
             }
         }
-            return 0;
+        System.out.println("Server keys received - "+serverPK.size()+"\n----------\n");
+        return 0;
 
     }
 
@@ -105,6 +116,7 @@ public class Client {
             return -2;
         }
         int x;
+
         while(true){
             Random random = new Random();
             x = random.nextInt(100);
@@ -116,12 +128,21 @@ public class Client {
 
             byte[] signature = null;
             signature = getSignature("client_"+id ,"SYN;"+id+";"+x , password);
-            String messageResponse = _frontend.connect("SYN;"+id+";"+x, signature, serverPK );
+
+
+            String messageResponse = _frontend.connect("SYN;"+id+";"+x, signature, serverPK);
+
+            String[] params = messageResponse.split(";");
             System.out.println(messageResponse);
-            if(messageResponse.equals("200"))
+            if(params[0].equals("200")){
+                for(int i = 6 ; i<params.length ; i = i+3){
+                    accountsRTS.put( params[i] , Integer.parseInt(params[i+2]) );
+                    accountsWTS.put( params[i] , Integer.parseInt(params[i+1]) );
+                }
                 break;
-            if(messageResponse.equals("-2")){
-                return connect( iter +1, password);
+            }
+            if(params[0].equals("-2")){
+                return this.connect( iter +1, password);
             }
         }
         SSID =  x ;
@@ -130,37 +151,28 @@ public class Client {
         return 0;
     }
 
-    public void loadKeyStore( String password ){
-        try {
-            keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(new FileInputStream("client_"+this.id+".p12"), password.toCharArray());
 
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (CertificateException e) {
-            e.printStackTrace();
-        } catch (KeyStoreException e) {
-            e.printStackTrace();
-        }
 
-    }
 
+    /*
+    * PROGRAM MAIN OPERATIONS =================================
+    */
     public int openAccount( String accountAlias , int iter, String password) {
         if(iter >= 10){
             return -2;
         }
         loadKeyStore(password);
 
-        String publicKeyClient = this.getPublicKey(accountAlias);
+        String publicKeyAccount = this.getPublicKey(accountAlias);
 
-        String message = "1;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient;
+        String message = "1;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyAccount+";0";
         byte[] signature = null;
         signature = getSignature("client_"+id , message, password);
-        String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
+
+
+        String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo, 0);
+
+
         if(messageResponse == "-2"){
             return openAccount( accountAlias , iter +1 , password );
         }
@@ -169,8 +181,11 @@ public class Client {
         String status = params[2];
 
         incSeqNo();
-        if(status.equals("200"))
+        if(status.equals("200")){
+            accountsWTS.put(publicKeyAccount , 1);
+            accountsRTS.put(publicKeyAccount , 1);
             return 0;
+        }
         else if(status.equals("403"))
             return -3;
 
@@ -179,6 +194,8 @@ public class Client {
     }
 
     public int sendAmount(String sourceAlias, String destinationAlias, int amount, int iter, String password ) {
+
+
         if(iter >= 10){
             return -2;
         }
@@ -186,10 +203,17 @@ public class Client {
 
         String sourcePK = this.getPublicKey(sourceAlias);
         String destPK = this.getPublicKey(destinationAlias);
-        String message = "2;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+sourcePK+";"+destPK+";"+Integer.toString(amount);
+
+        incrementWTS(sourcePK);
+        int wts = getWTSforAccount(sourcePK);
+
+        String message = "2;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+sourcePK+";"+destPK+";"+Integer.toString(amount)+";"+Integer.toString(wts);
         byte[] signature = null;
         signature = getSignature(sourceAlias , message, password);
-        String messageResponse = _frontend.send(message, signature , serverPK, SSID , SeqNo);
+
+
+        String messageResponse = _frontend.send(message, signature , serverPK, SSID , SeqNo, wts);
+
         if(messageResponse == "-2"){
             sendAmount( sourceAlias , destinationAlias , amount, iter+1, password);
         }
@@ -220,13 +244,19 @@ public class Client {
 
         String publicKeyClient = this.getPublicKey(accountAlias);
 
-        String message = "3;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient;
+        incrementRTS(publicKeyClient);
+        int rts = getRTSforAccount(publicKeyClient);
+
+        String message = "3;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient+";"+Integer.toString(rts);
         byte[] signature = null;
         signature = getSignature(accountAlias , message, password);
-        String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
+
+
+        String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo, rts);
         if(messageResponse == "-2"){
             return checkAccount( accountAlias , iter +1, password);
         }
+
 
         String[] params = messageResponse.split(";");
 
@@ -257,14 +287,21 @@ public class Client {
 
         String publicKeyClient = this.getPublicKey(accountAlias);
 
-        String message = "4;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient;
+        incrementWTS(publicKeyClient);
+        int wts = getWTSforAccount(publicKeyClient);
+
+        String message = "4;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient+";"+Integer.toString(wts);
 
         byte[] signature = null;
         signature = getSignature(accountAlias , message, password);
-        String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
+
+
+        String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo, wts);
         if(messageResponse == "-2"){
             return receiveAmount( accountAlias , iter +1, password );
         }
+
+
 
         String[] params = messageResponse.split(";");
         String status = params[2];
@@ -272,8 +309,8 @@ public class Client {
         incSeqNo();
         if(status.equals("200"))
             return 0;
-        else
-            return -1;
+        //else
+        return -1;
     }
 
     public String audit(String accountAlias, int iter, String password ) {
@@ -284,13 +321,19 @@ public class Client {
 
         String publicKeyClient = this.getPublicKey(accountAlias);
 
-        String message = "5;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient;
+        incrementRTS(publicKeyClient);
+        int rts = getRTSforAccount(publicKeyClient);
+
+        String message = "5;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient+";"+Integer.toString(rts);
         byte[] signature = null;
         signature = getSignature(accountAlias , message , password);
-        String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
+
+
+        String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo, rts);
         if(messageResponse == "-2"){
             return audit( accountAlias , iter +1, password);
         }
+
 
         String result="";
 
@@ -309,10 +352,17 @@ public class Client {
             return result;
         }
 
-        else
-            return "-1";
+        //else
+        return "-1";
     }
 
+
+
+
+
+    /*
+    *TERMINATION OPERATIONS ====================================
+    */
     public int closeConnection( int iter ) {
         if(iter >= 10){
             return -2;
@@ -321,7 +371,10 @@ public class Client {
 
         String message = "FIN;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo) ;
         signature = getSignature( "client_"+id ,message, "password");
-        String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo);
+
+        int timestamp = 0; //TODO timestamp
+
+        String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo, timestamp);
         if(messageResponse == "-2"){
             return closeConnection( iter +1);
         }
@@ -340,6 +393,13 @@ public class Client {
 
     }
 
+
+
+
+
+    /*
+    * CRYPTOGRAPHY FUNCTIONS
+    */
     public byte[] getSignature(String alias, String message, String password) {
         System.out.println("Signing outgoing message ...");
         byte[] digitalSignature = null;
@@ -376,5 +436,54 @@ public class Client {
         }
         System.out.println("Message Signed !!");
         return digitalSignature;
+    }
+
+
+
+
+    /*
+    * AUXILIARY FUNCTIONS =======================================
+    */
+    private void incrementRTS(String accPK) {
+
+        int rts = accountsRTS.get(accPK) ;
+        accountsRTS.replace( accPK , rts+1);
+
+    }
+
+    private void incrementWTS(String accPK) { // TODO
+        int wts = accountsWTS.get(accPK) ;
+        accountsWTS.replace( accPK , wts+1);
+    }
+
+    private int getWTSforAccount(String accPK) {
+        return accountsWTS.get(accPK) ;
+    }
+
+    private int getRTSforAccount(String accPK) {
+        return accountsRTS.get(accPK) ;
+    }
+
+    public void loadKeyStore( String password ){
+        try {
+            keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(new FileInputStream("client_"+this.id+".p12"), password.toCharArray());
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (CertificateException e) {
+            e.printStackTrace();
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void incSeqNo(){
+        SeqNo ++;
     }
 }

@@ -1,6 +1,8 @@
 package pt.tecnico.sec.server;
 
-public class MessageLog {
+import java.io.Serializable;
+
+public class MessageLog implements Serializable {
     private String message;
     private byte[] signature;
     public MessageLog(String message, byte[] signature){

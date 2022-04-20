@@ -1,5 +1,6 @@
 package pt.tecnico.sec.client;
 
+import pt.tecnico.sec.client.MessageObserver;
 import com.google.protobuf.ByteString;
 import io.grpc.*;
 import pt.tecnico.sec.server.grpc.Server.*;
@@ -22,11 +23,12 @@ import java.util.concurrent.TimeUnit;
 
 public class ServerFrontend {
 
-    ManagedChannel channel;
-    ServerServiceGrpc.ServerServiceBlockingStub stub;
     final String host;
     final int port;
     final int replicasNo;
+
+    ManagedChannel channel;
+    ServerServiceGrpc.ServerServiceBlockingStub stub;
     List<ManagedChannel> channelList = new ArrayList<ManagedChannel>();
 
 
@@ -41,6 +43,9 @@ public class ServerFrontend {
 
     }
 
+    /*
+    * INITIALIZATION PROCESS OF EXCHANGING KEYS AND SID's
+    * */
     public List<String> exchange(String pbKey ){
         try {
             MessageRequest messageReq = MessageRequest.newBuilder().setMessage(pbKey).build();
@@ -63,7 +68,7 @@ public class ServerFrontend {
         MessageRequest messageReq = MessageRequest.newBuilder().setMessage(message).setHash(signHash).build();
         MessageResponse messageResp;
         String messageResponse = "";
-        String SSID = "-1";
+        String status = "-1";
         int inc = 0;
 
         boolean signatureOK = false;
@@ -75,7 +80,8 @@ public class ServerFrontend {
             }
             try{
                 inc ++;
-                messageResp = handleSynchronization(messageReq);
+                messageResp = handleSynchronization(messageReq, serverPublicKey, 0);
+                if (messageResp == null) return "-1";
 
             } catch (StatusRuntimeException e) {
 
@@ -86,7 +92,7 @@ public class ServerFrontend {
             }
 
             String[] params = messageResp.getMessage().split(";");
-            SSID = params[0];
+            status = params[0];
 
 
             messageResponse = messageResp.getMessage();
@@ -103,12 +109,23 @@ public class ServerFrontend {
 
         }
 
-        return SSID;
+        if(status.equals("400")){
+            return "400";
+        }
+        else
+            return messageResponse;
+
 
     }
 
-    public String send(String message , byte[] signature, List<PublicKey> serverPublicKey, int sid , int seqNo){
+    /*
+    * FUNCTION WHERE ALL MESSAGES OF A CLIENT ARE SENT TO THE SERVER AND WHERE ALL RESPONSES OF A
+    * SERVER ARE RECEIVED AND VERIFIED
+    * */
 
+    public String send(String message , byte[] signature, List<PublicKey> serverPublicKey, int sid , int seqNo, int timestamp){
+
+        System.out.println(message);
 
         ByteString signHash = ByteString.copyFrom(signature);
         MessageRequest messageReq = MessageRequest.newBuilder().setMessage(message).setHash(signHash).build();
@@ -123,8 +140,7 @@ public class ServerFrontend {
         while( !signatureOK || !responseOK ) {
 
             try{
-                messageResp = handleSynchronization(messageReq);
-                //messageResp = stub.withDeadlineAfter(500000, TimeUnit.MILLISECONDS).send(messageReq);
+                messageResp = handleSynchronization(messageReq, serverPublicKey, timestamp);
 
             } catch (StatusRuntimeException e) {
 
@@ -163,17 +179,27 @@ public class ServerFrontend {
 
         }
         System.out.println("Authenticity verified ...");
-        return messageResponse;
+
+        String[] params =  messageResponse.split(";");
+        String finale = params[0]+";"+params[1];
+
+        for ( int iter = 6; iter < params.length ; iter ++){
+            finale = finale+";"+params[iter];
+        }
+        return finale;
 
     }
 
 
-    public MessageResponse handleSynchronization( MessageRequest messageReq){
+    /*
+    * FUNCTIONS TO DEAL WITH MULTIPLE REPLICAS
+    * */
+    public MessageResponse handleSynchronization( MessageRequest messageReq ,  List<PublicKey> serverPublicKey, int timestamp){
 
         List<MessageResponse> messageResponses = new ArrayList<>();
         MessageObserver<MessageResponse> MessageObserver = new MessageObserver<MessageResponse>() ;
-
-
+        MessageResponse messageResp = MessageResponse.newBuilder().build();
+        MessageResponse result = null;
         try{
 
             List<Integer> ports = new ArrayList<Integer>();
@@ -193,16 +219,45 @@ public class ServerFrontend {
                     }
 
                 });
-                ports.clear();
-                while(  MessageObserver.getTotalResponses() != replicasNo ) {
 
+                while(MessageObserver.getAck() <= replicasNo/2 && MessageObserver.getTotalResponses() != replicasNo ){
                     MessageObserver.wait(500);
                 }
+
+                //messageResponses.addAll( MessageObserver.updatedValue() );
+
+                //String confirmResponseValue = messageResponses.get(0).getMessage();
+
+                /*while(MessageObserver.getAck() != replicasNo/2 && MessageObserver.getTotalResponses() != replicasNo ) {
+*//*
+                    for (int i = 0; i < replicasNo; i++){
+                        //String messageResponse = messageResponses.get(i).getMessage();
+                        byte[] signatureResponse = messageResponses.get(i).getHash().toByteArray();
+                        String messageResponseString = messageResponses.get(i).getMessage();
+                        String[] messageResponseArray = messageResponseString.split(";");   //SSID; seqNO; op ; TS ;ack;idServer;message
+                        int receivedTimestamp = Integer.parseInt(messageResponseArray[4]);
+
+                        if (!verifySignature(messageResponseString, signatureResponse, serverPublicKey) ||
+                                !confirmResponseValue.equals(messageResponseString) || (timestamp != receivedTimestamp)  ) {
+                            MessageObserver.deleteFromColector(Integer.parseInt(messageResponseArray[5]));
+                        }
+                    }
+
+                    if (MessageObserver.getTotalResponses() == replicasNo)
+                        return null;
+              /*  } */
+
+                if(MessageObserver.getACK() <= replicasNo/2 ){
+                    return null;
+                }
+
+                result = MessageObserver.getUpdatedValue();
+                ports.clear();
+
                 for (ManagedChannel mCh : channelList) {
                     mCh.shutdown();
                 }
                 channelList.clear();
-                messageResponses.addAll( MessageObserver.updatedValue() );
                 MessageObserver.clean();
 
             }
@@ -210,7 +265,7 @@ public class ServerFrontend {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        return messageResponses.get(0);
+        return result;
     }
 
     public List<String> handleSyncForExchange(MessageRequest messageReq) {
@@ -249,7 +304,7 @@ public class ServerFrontend {
                     mCh.shutdown();
                 }
                 channelList.clear();
-                messageResponses.addAll( MessageObserver.updatedValue() );
+                messageResponses.addAll( MessageObserver.getAllValues() );
                 MessageObserver.clean();
 
             }
@@ -263,12 +318,17 @@ public class ServerFrontend {
         return serversKeys ;
 
     }
+
+    /*
+    * VERIFIES AUTHENTICITY OF SERVERS MESSAGE
+    * */
     public boolean verifySignature(String message, byte[] encryptedMessageHash, List<PublicKey> publicKey) {
 
 
         byte[] decryptedMessageHash = null;
         Cipher cipher = null;
-        int total;
+
+        System.out.println( "Decrypting message: "+ message+ "\n---\n");
 
         for(PublicKey pk : publicKey) {
             try {
@@ -308,6 +368,10 @@ public class ServerFrontend {
         return false;
     }
 
+
+    /*
+    * CLOSES CHANNEL
+    * */
     public void shutDownChannel() {
         channel.shutdown();
     }

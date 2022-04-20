@@ -4,10 +4,11 @@ import java.io.Serializable;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class ClientS implements Serializable {
 
-    HashMap<PublicKey , Account> accounts = new HashMap<PublicKey , Account>();
+    HashMap<PublicKey , AccountRegister> accounts = new HashMap<PublicKey , AccountRegister>();     //accounts in the registers
     PublicKey clientPK;
     int id;
     int SID = -1;
@@ -44,7 +45,7 @@ public class ClientS implements Serializable {
 
     public int createAccount(PublicKey aPK) {
         if( !accounts.containsKey(aPK) ) {
-            Account account = new Account( aPK );
+            AccountRegister account = new AccountRegister( aPK );
             accounts.put( aPK , account);
             return 0;
         }
@@ -53,21 +54,26 @@ public class ClientS implements Serializable {
     }
 
     public Transaction sendAmount(PublicKey source, PublicKey dest, int amount, int tid) {
-        Account account = accounts.get(source);
+        AccountRegister account = accounts.get(source);
+        while(account.beingAccessed){
+            continue;
+        }
         Transaction tra = account.createOutgoingTransaction( dest , amount , tid );
         if(tra == null)
                 return null;
-        Account account1 = accounts.get(dest);
+        AccountRegister account1 = accounts.get(dest);
         account1.createIncomingTransaction( tra );
+        account.writeTS++ ;
         return tra;
 
     }
 
     public String checkAccount(PublicKey accountPK) {
-        Account account = accounts.get( accountPK );
+        AccountRegister account = accounts.get( accountPK );
         String msg = Integer.toString( account.getBalance() );
 
         ArrayList iTL = account.getIncomingTransactions();
+        account.readTS++;
         if( iTL.isEmpty() ){
             return "200;"+msg;
         }
@@ -81,19 +87,38 @@ public class ClientS implements Serializable {
     }
 
     public void receiveAmount(PublicKey accountPK) {
-        Account account = accounts.get( accountPK );
+        AccountRegister account = accounts.get( accountPK );
+        while(account.beingAccessed){
+            continue;
+        }
         account.acceptIncomingTransfers();
+        account.writeTS++ ;
     }
 
     public String getHistory(PublicKey accountPK) {
-        Account account = accounts.get( accountPK );
+        AccountRegister account = accounts.get( accountPK );
         String msg = "";
         if(account.getTransactionHistory().isEmpty()){
+            account.readTS++;
             return "200";
         }
         for (Transaction transaction : account.getTransactionHistory()) {
             msg = transaction.toString()+";";
         }
+        account.readTS++;
         return "201;"+msg;
     }
+
+    public String getAccountsInfo() {
+        String accountsInfo = "";
+
+        for (Map.Entry<PublicKey, AccountRegister> set :
+                accounts.entrySet()) {
+
+            accountsInfo = accountsInfo +  ";" + set.getValue().getAccountsInfo()  ;
+
+        }
+        return accountsInfo;
+    }
+
 }
