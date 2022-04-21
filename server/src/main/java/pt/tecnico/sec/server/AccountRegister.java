@@ -12,6 +12,11 @@ public class AccountRegister implements Serializable {
     int balance;
     ArrayList<Transaction> transactionHistory = new ArrayList<Transaction>() ;
     ArrayList<Transaction> incomingTransactions = new ArrayList<Transaction>() ;
+
+    public void setReadTS(int readTS) {
+        this.readTS = readTS;
+    }
+
     int writeTS = 0;
     int readTS = 0;
     boolean beingAccessed = false;

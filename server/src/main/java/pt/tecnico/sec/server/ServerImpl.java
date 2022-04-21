@@ -37,7 +37,7 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
     @Override
     public void send(MessageRequest request, StreamObserver<MessageResponse> responseObserver) {
         String messageReq = request.getMessage();
-        //System.out.println(messageReq);
+        System.out.println("Received this input: "+messageReq+"\n-----------\n");
         ByteString signHashResponse = request.getHash();
         byte[] signature = signHashResponse.toByteArray();
 
@@ -111,7 +111,7 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
          */
         else if (params[0].equals("BROADCAST")){
 
-            System.out.println("Received Broadcast from other replicas from client\n -------- \n");
+            System.out.println("Received Broadcast from other replicas \n -------- \n");
 
             verifyBroadcastMessage(messageReq , signature , _server.getOtherServersPks());
             _server.saveEchoMessage(messageReq , params[1] , signature );

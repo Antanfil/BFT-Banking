@@ -82,6 +82,7 @@ public class Server implements Serializable {
                 while(reads != 0){
                 }
                 truth = assureTruthfulness( messageReq );
+                System.out.println("Truth- "+ truth +" \n -------- \n");
                 if (truth.equals("error"))
                     return "-1";
                 String[] truthparams = truth.split(";");
@@ -146,7 +147,7 @@ public class Server implements Serializable {
     private String sendAmount(ClientS client , String sourceAccount, String destAccount, int amount , int tid , int wts) {
 
         System.out.println( "-----------\nAccounts current write ts - " + client.accounts.get(stringToKey(sourceAccount) ).getWriteTS() );
-        System.out.println( "Received write ts - " + client.accounts.get(stringToKey(sourceAccount) ).getWriteTS() + "\n------------\n");
+        System.out.println( "Received write ts - " + wts + "\n------------\n");
 
         if( wts <= client.accounts.get(sourceAccount).getWriteTS()) {
             return "w;" + client.accounts.get(sourceAccount).getWriteTS() + ";NOK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";403";
@@ -156,7 +157,7 @@ public class Server implements Serializable {
             return "w;"+ wts +";NOK;" + Integer.toString(frontend.getOwnPort()-8080 ) + ";401";
         else if(amount <0)
             return "w;" + wts + "NOK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";402";
-        Transaction t = client.sendAmount(stringToKey( sourceAccount ) , stringToKey( destAccount ) , amount , tid );
+        Transaction t = client.sendAmount(stringToKey( sourceAccount ) , stringToKey( destAccount ) , amount , tid , wts );
         if (t == null)
             return "w;" + wts + ";NOK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";400";
 
@@ -167,38 +168,38 @@ public class Server implements Serializable {
     private String checkAccount(ClientS client, String accountPK , int rts ) {
 
         System.out.println( "-----------\nAccounts current read ts - " + client.accounts.get(stringToKey(accountPK) ).getReadTS() );
-        System.out.println( "Received read ts - " + client.accounts.get(stringToKey(accountPK) ).getReadTS() + "\n------------\n");
+        System.out.println( "Received read ts - " + rts + "\n------------\n");
 
         if( rts <= client.accounts.get(stringToKey(accountPK) ).getReadTS()) {
             return "r;" + client.accounts.get(stringToKey(accountPK)).getReadTS() + ";NOK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";400";
         }
-        return "r;" + client.accounts.get(stringToKey(accountPK)).getReadTS()+  ";ACK;" + Integer.toString(frontend.getOwnPort()-8080 )+ ";" + client.checkAccount( stringToKey(accountPK) );
+        return "r;" + client.accounts.get(stringToKey(accountPK)).getReadTS()+  ";ACK;" + Integer.toString(frontend.getOwnPort()-8080 )+ ";" + client.checkAccount( stringToKey(accountPK) , rts );
 
     }
 
     private String receiveAmount( ClientS client, String accountPK , int wts ) {
 
         System.out.println( "-----------\nAccounts current write ts - " + client.accounts.get(stringToKey(accountPK) ).getWriteTS() );
-        System.out.println( "Received write ts - " + client.accounts.get(stringToKey(accountPK) ).getWriteTS() + "\n------------\n");
+        System.out.println( "Received write ts - " + wts + "\n------------\n");
 
 
         if( wts <= client.accounts.get(accountPK).getWriteTS()) {
             return "w;" + client.accounts.get(accountPK).getWriteTS() + ";NOK;" + Integer.toString(frontend.getOwnPort()-8080  )+ ";400";
         }
-        client.receiveAmount( stringToKey(accountPK) );
+        client.receiveAmount( stringToKey(accountPK) , wts );
         return "w;" + wts + ";ACK;"+ Integer.toString(frontend.getOwnPort()-8080  ) + ";200";
     }
 
     private String auditAccount(ClientS client, String accountPK , int rts) {
 
         System.out.println( "-----------\nAccounts current read ts - " + client.accounts.get(stringToKey(accountPK) ).getReadTS() );
-        System.out.println( "Received read ts - " + client.accounts.get(stringToKey(accountPK) ).getReadTS() + "\n------------\n");
+        System.out.println( "Received read ts - " + rts + "\n------------\n");
 
 
-        if( rts <= client.accounts.get(accountPK).getWriteTS()) {
-            return "w;" + client.accounts.get(accountPK).getReadTS() + ";NOK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";400";
+        if( rts <= client.accounts.get(stringToKey(accountPK) ).getReadTS()) {
+            return "w;" + client.accounts.get(stringToKey(accountPK) ).getReadTS() + ";NOK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";400";
         }
-        return "r;" + client.accounts.get(stringToKey(accountPK)).getReadTS()+";ACK;" + Integer.toString(frontend.getOwnPort()-8080  ) +  ";" + client.getHistory( stringToKey(accountPK) );
+        return "r;" + client.accounts.get(stringToKey(accountPK)).getReadTS()+";ACK;" + Integer.toString(frontend.getOwnPort()-8080  ) +  ";" + client.getHistory( stringToKey(accountPK) , rts );
     }
 
     public String closeConnection(String id) {
@@ -393,44 +394,7 @@ public class Server implements Serializable {
         return false;
     }
 
-    public int checkForQuorum(){
-        String mainMessage = null;
-        int quorum = 0;
-        int id = -1;
-        boolean checkedEverything = false;
-        ArrayList<Integer> usedId = new ArrayList<>();
 
-        while( !checkedEverything ){
-
-            for (int a = 0; a < frontend.getReplicasNo(); a++) {
-                if (echoList.containsKey(a)) {
-                    if (mainMessage == null && !contains(usedId, a)) {
-                        mainMessage = echoList.get(a);
-                        id = a;
-                        usedId.add(id);
-                    }
-
-                }
-            }
-            for (int i = 0; i < frontend.getReplicasNo(); i++) {
-                if (echoList.containsKey(i)) {
-                    if (mainMessage == echoList.get(i)) {
-                        quorum++;
-                    }
-                }
-            }
-            if (quorum >= frontend.getReplicasNo() / 2 + 1) {
-                return id;
-            }
-            if(mainMessage == null){
-                checkedEverything=true;
-            }
-            mainMessage = null;
-            quorum = 0;
-        }
-
-        return -1;
-    }
 
     /*
     * BROADCAST SEND RELATED OPERATIONS
@@ -438,7 +402,7 @@ public class Server implements Serializable {
     public void propagatePK(){
         try {
             keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(new FileInputStream("server.p12"), "password".toCharArray());
+            keyStore.load(new FileInputStream(serverName), "password".toCharArray());
 
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
@@ -466,6 +430,47 @@ public class Server implements Serializable {
         frontend.broadcastPK(pbKey);
     }
 
+    public int checkForQuorum(){
+        System.out.println("QUORUM CHECK\n--------\n");
+        String mainMessage = null;
+        int quorum = 0;
+        int id = -1;
+        boolean checkedEverything = false;
+        ArrayList<Integer> usedId = new ArrayList<>();
+
+        while( !checkedEverything ){
+
+            for (int a = 0; a < frontend.getReplicasNo(); a++) {
+                if (echoList.containsKey(a)) {
+                    if (mainMessage == null && !contains(usedId, a)) {
+                        mainMessage = echoList.get(a);
+                        id = a;
+                        usedId.add(id);
+                    }
+
+                }
+            }
+            for (int i = 0; i < frontend.getReplicasNo(); i++) {
+                if (echoList.containsKey(i)) {
+                    System.out.println("Echo from server "+i+" - "+echoList.get(i) + "\n-----");
+                    if (mainMessage.equals(echoList.get(i) ) ) {
+                        quorum++;
+                    }
+                }
+            }
+            if (quorum >= frontend.getReplicasNo() / 2 + 1) {
+                return id;
+            }
+            if(mainMessage == null){
+                checkedEverything=true;
+            }
+            mainMessage = null;
+            quorum = 0;
+        }
+
+        return -1;
+    }
+
     private String assureTruthfulness( String messageReq )  {
         int truthAsserted = 0;
         int serverid = frontend.getOwnPort()-8080 ;
@@ -475,19 +480,15 @@ public class Server implements Serializable {
 
         frontend.Broadcast(msg , getServerSignature(msg) );
 
-        while( truthAsserted != 5 ){
+        while( truthAsserted != frontend.getReplicasNo() ){
             int q = checkForQuorum();
             if( q != -1){
                 return echoList.get(q);
             }
-            try {
-                wait(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+
             truthAsserted++;
         }
-        return " error";
+        return "error";
     }
 
     /*

@@ -53,7 +53,7 @@ public class ClientS implements Serializable {
             return -1;
     }
 
-    public Transaction sendAmount(PublicKey source, PublicKey dest, int amount, int tid) {
+    public Transaction sendAmount(PublicKey source, PublicKey dest, int amount, int tid , int ts) {
         AccountRegister account = accounts.get(source);
         while(account.beingAccessed){
             continue;
@@ -63,17 +63,17 @@ public class ClientS implements Serializable {
                 return null;
         AccountRegister account1 = accounts.get(dest);
         account1.createIncomingTransaction( tra );
-        account.writeTS++ ;
+        account.setWriteTS(ts);
         return tra;
 
     }
 
-    public String checkAccount(PublicKey accountPK) {
+    public String checkAccount(PublicKey accountPK , int ts) {
         AccountRegister account = accounts.get( accountPK );
         String msg = Integer.toString( account.getBalance() );
 
         ArrayList iTL = account.getIncomingTransactions();
-        account.readTS++;
+        account.setReadTS( ts );
         if( iTL.isEmpty() ){
             return "200;"+msg;
         }
@@ -86,16 +86,16 @@ public class ClientS implements Serializable {
 
     }
 
-    public void receiveAmount(PublicKey accountPK) {
+    public void receiveAmount(PublicKey accountPK , int ts) {
         AccountRegister account = accounts.get( accountPK );
         while(account.beingAccessed){
             continue;
         }
         account.acceptIncomingTransfers();
-        account.writeTS++ ;
+        account.setWriteTS(ts) ;
     }
 
-    public String getHistory(PublicKey accountPK) {
+    public String getHistory(PublicKey accountPK , int ts) {
         AccountRegister account = accounts.get( accountPK );
         String msg = "";
         if(account.getTransactionHistory().isEmpty()){
@@ -105,7 +105,7 @@ public class ClientS implements Serializable {
         for (Transaction transaction : account.getTransactionHistory()) {
             msg = transaction.toString()+";";
         }
-        account.readTS++;
+        account.setReadTS(ts);
         return "201;"+msg;
     }
 
