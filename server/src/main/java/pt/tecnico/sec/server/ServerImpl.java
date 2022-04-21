@@ -37,7 +37,7 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
     @Override
     public void send(MessageRequest request, StreamObserver<MessageResponse> responseObserver) {
         String messageReq = request.getMessage();
-        System.out.println("Received this input: "+messageReq+"\n-----------\n");
+
         ByteString signHashResponse = request.getHash();
         byte[] signature = signHashResponse.toByteArray();
 
@@ -124,7 +124,7 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
          */
         else if (params[0].equals("INITIALIZATION")) {
 
-            System.out.println("Received publick keys from other replicas\n -------- \n");
+            System.out.println("Received public keys from other replicas\n -------- \n");
 
             _server.receiverBroadcastPK(params[1]);
             MessageResponse resp = MessageResponse.newBuilder().build();

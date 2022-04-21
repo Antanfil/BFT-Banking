@@ -133,7 +133,6 @@ public class Client {
             String messageResponse = _frontend.connect("SYN;"+id+";"+x, signature, serverPK);
 
             String[] params = messageResponse.split(";");
-            System.out.println(messageResponse);
             if(params[0].equals("200")){
                 for(int i = 6 ; i<params.length ; i = i+3){
                     accountsRTS.put( params[i] , Integer.parseInt(params[i+2]) );
