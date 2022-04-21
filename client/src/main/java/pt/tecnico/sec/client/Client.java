@@ -303,7 +303,7 @@ public class Client {
         if (publicKeyClient.equals("-4")){
             return -4;
         }
-        
+
         incrementWTS(publicKeyClient);
         int wts = getWTSforAccount(publicKeyClient);
 
