@@ -73,10 +73,16 @@ mvn clean install
 
 ### Initializing Server
 
-We will now initialize the server on localhost port 8080 (make sure this address is not already in use):
+We will now initialize the necessary servers:
+* on localhost port 8080 (make sure this address is not already in use);
+* the name of yhe keystore 
+* the integer representing the maximum number of tolerated Byzantine faults, in this case 1, indicating that will be 
+  initialized 3 server's replicas:
 
-`mvn clean compile exec:java -Dexec.args="localhost 8080"`
+`mvn clean compile exec:java -Dexec.args="localhost 8080 server1.p12 1"`
 
+As we can start more than one server, after the initialization, we must press the enter key to proceed with the 
+broadcast of public keys across servers.
 
 ### Initializing Client1
 
@@ -90,7 +96,10 @@ Change to the Client Directory ( cd client )
 
 Run the following command to start a client:
 
-`mvn clean compile exec:java -Dexec.args="localhost 8080"`
+`mvn clean compile exec:java -Dexec.args="localhost 8080 1"`
+
+The integer that follows the port represents the same thing as no server, the maximum number of acceptable Byzantine 
+failures.
 
 When asked insert "1 password" ( corresponds to clientId=1 and password=password)
 
