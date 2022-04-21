@@ -116,7 +116,6 @@ public class Server implements Serializable {
             case "5":
                 System.out.println("Operation is audit account. \n -------- \n");
                 while(writeIsQueued){
-
                 }
                 reads ++;
                 msg = auditAccount( client , params[4], Integer.parseInt(params[5]) );
@@ -149,10 +148,10 @@ public class Server implements Serializable {
         System.out.println( "-----------\nAccounts current write ts - " + client.accounts.get(stringToKey(sourceAccount) ).getWriteTS() );
         System.out.println( "Received write ts - " + wts + "\n------------\n");
 
-        if( wts <= client.accounts.get(sourceAccount).getWriteTS()) {
-            return "w;" + client.accounts.get(sourceAccount).getWriteTS() + ";NOK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";403";
+        if( wts <= client.accounts.get(stringToKey(sourceAccount)).getWriteTS()) {
+            return "w;" + client.accounts.get(stringToKey(sourceAccount)).getWriteTS() + ";NOK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";403";
         }
-        client.accounts.get(sourceAccount).setWriteTS(wts);
+        client.accounts.get(stringToKey(sourceAccount)).setWriteTS(wts);
         if (sourceAccount.equals(destAccount))
             return "w;"+ wts +";NOK;" + Integer.toString(frontend.getOwnPort()-8080 ) + ";401";
         else if(amount <0)
@@ -183,8 +182,8 @@ public class Server implements Serializable {
         System.out.println( "Received write ts - " + wts + "\n------------\n");
 
 
-        if( wts <= client.accounts.get(accountPK).getWriteTS()) {
-            return "w;" + client.accounts.get(accountPK).getWriteTS() + ";NOK;" + Integer.toString(frontend.getOwnPort()-8080  )+ ";400";
+        if( wts <= client.accounts.get(stringToKey(accountPK)).getWriteTS()) {
+            return "w;" + client.accounts.get(stringToKey(accountPK)).getWriteTS() + ";NOK;" + Integer.toString(frontend.getOwnPort()-8080  )+ ";400";
         }
         client.receiveAmount( stringToKey(accountPK) , wts );
         return "w;" + wts + ";ACK;"+ Integer.toString(frontend.getOwnPort()-8080  ) + ";200";
@@ -204,7 +203,7 @@ public class Server implements Serializable {
 
     public String closeConnection(String id) {
         ClientS client = clients.get( id );
-        String msg = client.getSID()+";"+client.getSeqNo()+";c;0;ACK:"+Integer.toString(frontend.getOwnPort()-8080  )+";200";
+        String msg = client.getSID()+";"+client.getSeqNo()+";c;0;ACK;"+Integer.toString(frontend.getOwnPort()-8080  )+";200";
         client.setSID(-1);
         client.setSeqNo(0);
         return msg;
@@ -378,9 +377,11 @@ public class Server implements Serializable {
 
         String message = messageReq.substring( 12 , messageReq.length() );
         echoList.put(Integer.parseInt(param) , message);
-        int q = checkForQuorum();
-        if( q != -1){
-            handleMessage( echoList.get(q) , signature);
+        if( !echoList.containsKey(frontend.getOwnPort()-8080) ){
+            int q = checkForQuorum();
+            if( q != -1){
+                handleMessage( echoList.get(q) , signature);
+            }
         }
 
     }
@@ -431,7 +432,6 @@ public class Server implements Serializable {
     }
 
     public int checkForQuorum(){
-        System.out.println("QUORUM CHECK\n--------\n");
         String mainMessage = null;
         int quorum = 0;
         int id = -1;
@@ -452,7 +452,6 @@ public class Server implements Serializable {
             }
             for (int i = 0; i < frontend.getReplicasNo(); i++) {
                 if (echoList.containsKey(i)) {
-                    System.out.println("Echo from server "+i+" - "+echoList.get(i) + "\n-----");
                     if (mainMessage.equals(echoList.get(i) ) ) {
                         quorum++;
                     }

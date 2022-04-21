@@ -125,7 +125,6 @@ public class ServerFrontend {
 
     public String send(String message , byte[] signature, List<PublicKey> serverPublicKey, int sid , int seqNo, int timestamp){
 
-        System.out.println(message);
 
         ByteString signHash = ByteString.copyFrom(signature);
         MessageRequest messageReq = MessageRequest.newBuilder().setMessage(message).setHash(signHash).build();
@@ -328,7 +327,6 @@ public class ServerFrontend {
         byte[] decryptedMessageHash = null;
         Cipher cipher = null;
 
-        System.out.println( "Decrypting message: "+ message+ "\n---\n");
 
         for(PublicKey pk : publicKey) {
             try {
