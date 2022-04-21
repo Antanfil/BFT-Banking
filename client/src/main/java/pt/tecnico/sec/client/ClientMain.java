@@ -25,7 +25,7 @@ public class ClientMain {
  
  		final String host = args[0];
  		final int port1 = Integer.parseInt(args[1]);
-		 final int replicas = Integer.parseInt(args[2]);
+		 final int replicas = Integer.parseInt(args[2])*2+1;
 		int clientID = 0;
 		boolean again = true;
 

@@ -36,6 +36,8 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
     * */
     @Override
     public void send(MessageRequest request, StreamObserver<MessageResponse> responseObserver) {
+
+
         String messageReq = request.getMessage();
 
         ByteString signHashResponse = request.getHash();

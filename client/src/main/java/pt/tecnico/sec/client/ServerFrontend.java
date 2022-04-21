@@ -223,28 +223,6 @@ public class ServerFrontend {
                     MessageObserver.wait(500);
                 }
 
-                //messageResponses.addAll( MessageObserver.updatedValue() );
-
-                //String confirmResponseValue = messageResponses.get(0).getMessage();
-
-                /*while(MessageObserver.getAck() != replicasNo/2 && MessageObserver.getTotalResponses() != replicasNo ) {
-*//*
-                    for (int i = 0; i < replicasNo; i++){
-                        //String messageResponse = messageResponses.get(i).getMessage();
-                        byte[] signatureResponse = messageResponses.get(i).getHash().toByteArray();
-                        String messageResponseString = messageResponses.get(i).getMessage();
-                        String[] messageResponseArray = messageResponseString.split(";");   //SSID; seqNO; op ; TS ;ack;idServer;message
-                        int receivedTimestamp = Integer.parseInt(messageResponseArray[4]);
-
-                        if (!verifySignature(messageResponseString, signatureResponse, serverPublicKey) ||
-                                !confirmResponseValue.equals(messageResponseString) || (timestamp != receivedTimestamp)  ) {
-                            MessageObserver.deleteFromColector(Integer.parseInt(messageResponseArray[5]));
-                        }
-                    }
-
-                    if (MessageObserver.getTotalResponses() == replicasNo)
-                        return null;
-              /*  } */
 
                 if(MessageObserver.getACK() <= replicasNo/2 ){
                     return null;
