@@ -63,7 +63,7 @@ public class Server implements Serializable {
     */
 
     public String handleMessage(String messageReq, byte[] signature) {
-
+        System.out.println("handleMessage");
         String[] params = messageReq.split(";");
         String msg= "404";
         String truth ="";
@@ -121,6 +121,10 @@ public class Server implements Serializable {
                 msg = auditAccount( client , params[4], Integer.parseInt(params[5]) );
                 reads --;
                 break;
+            case "PUZZLE":
+                System.out.println("Operation is puzzle. \n -------- \n");
+                msg = puzzle(client);
+                break;
         }
         lastMessage = params[2]+";"+params[3]+";"+msg;
 
@@ -130,6 +134,11 @@ public class Server implements Serializable {
     /*
     * SERVER OPERATIONS ON ACCOUNTS
     * */
+    
+    public String puzzle(ClientS client){
+        
+        return ";this is a puzzle";
+    }
 
     public String openAccount( ClientS client , String accountPublicKey, String ts){
 

@@ -138,7 +138,7 @@ public class ServerImpl extends ServerServiceGrpc.ServerServiceImplBase {
         */
         else {
             System.out.println("Received operation request from client\n -------- \n");
-            if (params[0].equals("1")) {
+            if (params[0].equals("1") || params[0].equals("PUZZLE")) {
                 if (!verifyMessage(messageReq, signature, _server.getClientPublicKey(params[1]))) {
                     responseObserver.onError(null);
                 }
