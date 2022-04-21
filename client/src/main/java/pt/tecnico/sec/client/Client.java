@@ -61,6 +61,9 @@ public class Client {
         PublicKey publicKeyClient = null;
         try {
             certificate = keyStore.getCertificate(alias);
+            if(certificate == null){
+                return "-4";
+            }
             publicKeyClient = certificate.getPublicKey();
         } catch (KeyStoreException e) {
             e.printStackTrace();
@@ -164,6 +167,9 @@ public class Client {
         loadKeyStore(password);
 
         String publicKeyAccount = this.getPublicKey(accountAlias);
+        if (publicKeyAccount.equals("-4")){
+            return -4;
+        }
 
         String message = "1;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyAccount+";0";
         byte[] signature = null;
@@ -202,7 +208,13 @@ public class Client {
         loadKeyStore(password);
 
         String sourcePK = this.getPublicKey(sourceAlias);
+        if (sourcePK.equals("-4")){
+            return -4;
+        }
         String destPK = this.getPublicKey(destinationAlias);
+        if (destPK.equals("-4")){
+            return -5;
+        }
 
         incrementWTS(sourcePK);
         int wts = getWTSforAccount(sourcePK);
@@ -243,6 +255,9 @@ public class Client {
         loadKeyStore(password);
 
         String publicKeyClient = this.getPublicKey(accountAlias);
+        if (publicKeyClient.equals("-4")){
+            return "-4";
+        }
 
         incrementRTS(publicKeyClient);
         int rts = getRTSforAccount(publicKeyClient);
@@ -286,7 +301,10 @@ public class Client {
         loadKeyStore(password);
 
         String publicKeyClient = this.getPublicKey(accountAlias);
-
+        if (publicKeyClient.equals("-4")){
+            return -4;
+        }
+        
         incrementWTS(publicKeyClient);
         int wts = getWTSforAccount(publicKeyClient);
 
@@ -320,6 +338,9 @@ public class Client {
         loadKeyStore(password);
 
         String publicKeyClient = this.getPublicKey(accountAlias);
+        if (publicKeyClient.equals("-4")){
+            return "-4";
+        }
 
         incrementRTS(publicKeyClient);
         int rts = getRTSforAccount(publicKeyClient);

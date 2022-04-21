@@ -114,6 +114,8 @@ public class ClientMain {
 								System.out.println("Couldn't reach the server. Try again later");
 							else if(status == -3)
 								System.out.println("This private Key already has an account created");
+							else if(status == -4)
+								System.out.println("There is no such alias in the keystore");
 							else if(status == 0)
 								System.out.println("Account opened successfully !!\n");
 							else
@@ -138,6 +140,10 @@ public class ClientMain {
 								System.out.println("You can't send money to your own account :( \n");
 							else if (status == 3)
 								System.out.println("Your send amount must be higher than 0! \n");
+							else if(status == -4)
+								System.out.println("There is no such source alias in the keystore");
+							else if(status == -5)
+								System.out.println("There is no such destination alias in the keystore");
 							else
 								System.out.println("Unknown error");
 						}
@@ -152,6 +158,8 @@ public class ClientMain {
 								System.out.println("Something went wrong. Try Again \n");
 							else if(status1 == "-2")
 								System.out.println("Couldn't reach the server. Try again later");
+							else if(status1 == "-4")
+								System.out.println("There is no such alias in the keystore");
 							else if( status1.length() > 7 ){
 								System.out.println("You have pending money entries to accept !!\n");
 								System.out.println(status1);
@@ -176,6 +184,8 @@ public class ClientMain {
 								System.out.println("Couldn't reach the server. Try again later");
 							else if (status == 0)
 								System.out.println("Money entered your account !! \n");
+							else if(status == -4)
+								System.out.println("There is no such alias in the keystore");
 							else
 								System.out.println("Unknown error");
 						}
@@ -192,6 +202,8 @@ public class ClientMain {
 								System.out.println("Couldn't reach the server. Try again later");
 							else if (status1 == "2")
 								System.out.println("No transactions for this account yet !!");
+							else if(status1 == "-4")
+								System.out.println("There is no such alias in the keystore");
 							else if (status1.length() > 7) {
 								System.out.println("List of accounts transactions:");
 								System.out.println(status1 + "\n");
