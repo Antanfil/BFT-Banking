@@ -146,6 +146,8 @@ public class ClientMain {
 								System.out.println("There is no such source alias in the keystore");
 							else if(status == -5)
 								System.out.println("There is no such destination alias in the keystore");
+							else if(status == -6)
+								System.out.println("The puzzle is incorrect");
 							else
 								System.out.println("Unknown error");
 						}
@@ -162,6 +164,8 @@ public class ClientMain {
 								System.out.println("Couldn't reach the server. Try again later");
 							else if(status1 == "-4")
 								System.out.println("There is no such alias in the keystore");
+							else if(status1 == "-5")
+								System.out.println("The puzzle is incorrect");
 							else if( status1.length() > 7 ){
 								System.out.println("You have pending money entries to accept !!\n");
 								System.out.println(status1);
@@ -188,6 +192,8 @@ public class ClientMain {
 								System.out.println("Money entered your account !! \n");
 							else if(status == -4)
 								System.out.println("There is no such alias in the keystore");
+							else if(status == -5)
+								System.out.println("The puzzle is incorrect");
 							else
 								System.out.println("Unknown error");
 						}
@@ -206,6 +212,8 @@ public class ClientMain {
 								System.out.println("No transactions for this account yet !!");
 							else if(status1 == "-4")
 								System.out.println("There is no such alias in the keystore");
+							else if(status1 == "-5")
+								System.out.println("The puzzle is incorrect");
 							else if (status1.length() > 7) {
 								System.out.println("List of accounts transactions:");
 								System.out.println(status1 + "\n");

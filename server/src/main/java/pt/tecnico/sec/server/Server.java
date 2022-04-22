@@ -87,7 +87,7 @@ public class Server implements Serializable {
                 if (truth.equals("error"))
                     return "-1";
                 String[] truthparams = truth.split(";");
-                msg = sendAmount( client , truthparams[4] , truthparams[5] , Integer.parseInt(truthparams[6]) , transactionId , Integer.parseInt(truthparams[7]) );
+                msg = sendAmount( client , truthparams[4] , truthparams[5] , Integer.parseInt(truthparams[6]) , transactionId , Integer.parseInt(truthparams[7]),truthparams[8] );
                 echoList.clear();
                 this.logMessage(messageReq, signature);
                 writeIsQueued = false;
@@ -97,7 +97,7 @@ public class Server implements Serializable {
                 while(writeIsQueued){
                 }
                 reads++;
-                msg = checkAccount( client , params[4] , Integer.parseInt(params[5]) );
+                msg = checkAccount( client , params[4] , Integer.parseInt(params[5]),params[6] );
                 reads--;
                 break;
             case "4":
@@ -109,7 +109,7 @@ public class Server implements Serializable {
                 if (truth.equals("error"))
                     return "-1";
                 String[] truthparam = truth.split(";");
-                msg = receiveAmount( client , truthparam[4] , Integer.parseInt( truthparam[5]) );
+                msg = receiveAmount( client , truthparam[4] , Integer.parseInt( truthparam[5]),truthparam[6] );
                 echoList.clear();
                 this.logMessage(messageReq, signature);
                 writeIsQueued = false;
@@ -119,7 +119,7 @@ public class Server implements Serializable {
                 while(writeIsQueued){
                 }
                 reads ++;
-                msg = auditAccount( client , params[4], Integer.parseInt(params[5]) );
+                msg = auditAccount( client , params[4], Integer.parseInt(params[5]),params[6] );
                 reads --;
                 break;
             case "PUZZLE":
@@ -158,7 +158,11 @@ public class Server implements Serializable {
 
     }
 
-    private String sendAmount(ClientS client , String sourceAccount, String destAccount, int amount , int tid , int wts) {
+    private String sendAmount(ClientS client , String sourceAccount, String destAccount, int amount , int tid , int wts,String puzzleSolution) {
+
+        if(client.verifyPuzzle(Integer.parseInt(puzzleSolution)).equals("-1")){
+            return "w;"+ wts +";ACK;" + Integer.toString(frontend.getOwnPort()-8080 ) + ";404";
+        }
 
         System.out.println( "-----------\nAccounts current write ts - " + client.accounts.get(stringToKey(sourceAccount) ).getWriteTS() );
         System.out.println( "Received write ts - " + wts + "\n------------\n");
@@ -168,18 +172,22 @@ public class Server implements Serializable {
         }
         client.accounts.get(stringToKey(sourceAccount)).setWriteTS(wts);
         if (sourceAccount.equals(destAccount))
-            return "w;"+ wts +";NOK;" + Integer.toString(frontend.getOwnPort()-8080 ) + ";401";
+            return "w;"+ wts +";ACK;" + Integer.toString(frontend.getOwnPort()-8080 ) + ";401";
         else if(amount <0)
-            return "w;" + wts + "NOK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";402";
+            return "w;" + wts + "ACK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";402";
         Transaction t = client.sendAmount(stringToKey( sourceAccount ) , stringToKey( destAccount ) , amount , tid , wts );
         if (t == null)
-            return "w;" + wts + ";NOK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";400";
+            return "w;" + wts + ";ACK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";400";
 
 
         return "w;" + wts + ";ACK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";200";
     }
 
-    private String checkAccount(ClientS client, String accountPK , int rts ) {
+    private String checkAccount(ClientS client, String accountPK , int rts,String puzzleSolution ) {
+
+        if(client.verifyPuzzle(Integer.parseInt(puzzleSolution)).equals("-1")){
+            return "r;" + client.accounts.get(stringToKey(accountPK)).getReadTS() + ";ACK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";404";
+        }
 
         System.out.println( "-----------\nAccounts current read ts - " + client.accounts.get(stringToKey(accountPK) ).getReadTS() );
         System.out.println( "Received read ts - " + rts + "\n------------\n");
@@ -191,7 +199,11 @@ public class Server implements Serializable {
 
     }
 
-    private String receiveAmount( ClientS client, String accountPK , int wts ) {
+    private String receiveAmount( ClientS client, String accountPK , int wts,String puzzleSolution ) {
+
+        if(client.verifyPuzzle(Integer.parseInt(puzzleSolution)).equals("-1")){
+            return "w;" + client.accounts.get(stringToKey(accountPK)).getWriteTS() + ";ACK;" + Integer.toString(frontend.getOwnPort()-8080  )+ ";404";
+        }
 
         System.out.println( "-----------\nAccounts current write ts - " + client.accounts.get(stringToKey(accountPK) ).getWriteTS() );
         System.out.println( "Received write ts - " + wts + "\n------------\n");
@@ -204,7 +216,13 @@ public class Server implements Serializable {
         return "w;" + wts + ";ACK;"+ Integer.toString(frontend.getOwnPort()-8080  ) + ";200";
     }
 
-    private String auditAccount(ClientS client, String accountPK , int rts) {
+    private String auditAccount(ClientS client, String accountPK , int rts,String puzzleSolution) {
+
+        if(client.verifyPuzzle(Integer.parseInt(puzzleSolution)).equals("-1")){
+            return "w;" + client.accounts.get(stringToKey(accountPK) ).getReadTS() + ";ACK;" + Integer.toString(frontend.getOwnPort()-8080  ) + ";400";
+        }
+
+
 
         System.out.println( "-----------\nAccounts current read ts - " + client.accounts.get(stringToKey(accountPK) ).getReadTS() );
         System.out.println( "Received read ts - " + rts + "\n------------\n");

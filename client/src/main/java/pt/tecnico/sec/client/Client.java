@@ -204,7 +204,7 @@ public class Client {
             return -1;
         }
 
-        String message = "1;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyAccount+";0;"+puzzleSolution;
+        String message = "1;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyAccount+";0;"+puzzleSolution+";";
         byte[] signature = null;
         signature = getSignature("client_"+id , message, password);
 
@@ -249,11 +249,16 @@ public class Client {
         if (destPK.equals("-4")){
             return -5;
         }
+
+        String puzzleSolution = puzzle(sourcePK, password);
+        if (puzzleSolution == null){
+            return -1;
+        }
         
         incrementWTS(sourcePK);
         int wts = getWTSforAccount(sourcePK);
 
-        String message = "2;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+sourcePK+";"+destPK+";"+Integer.toString(amount)+";"+Integer.toString(wts);
+        String message = "2;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+sourcePK+";"+destPK+";"+Integer.toString(amount)+";"+Integer.toString(wts)+";"+puzzleSolution+";";
         byte[] signature = null;
         signature = getSignature(sourceAlias , message, password);
 
@@ -277,6 +282,8 @@ public class Client {
             return 2;
         else if(status.equals("402"))
             return 3;
+        else if(status.equals("404"))
+            return -6;
         else
             return -1;
 
@@ -293,10 +300,15 @@ public class Client {
             return "-4";
         }
 
+        String puzzleSolution = puzzle(publicKeyClient, password);
+        if (puzzleSolution == null){
+            return "-1";
+        }
+
         incrementRTS(publicKeyClient);
         int rts = getRTSforAccount(publicKeyClient);
 
-        String message = "3;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient+";"+Integer.toString(rts);
+        String message = "3;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient+";"+Integer.toString(rts)+";"+puzzleSolution+";";
         byte[] signature = null;
         signature = getSignature(accountAlias , message, password);
 
@@ -310,6 +322,8 @@ public class Client {
         String[] params = messageResponse.split(";");
 
         String status = params[2];
+        if(status.equals("404"))
+            return "-5";
         String balance = params[3];
 
         String result;
@@ -339,10 +353,15 @@ public class Client {
             return -4;
         }
 
+        String puzzleSolution = puzzle(publicKeyClient, password);
+        if (puzzleSolution == null){
+            return -1;
+        }
+
         incrementWTS(publicKeyClient);
         int wts = getWTSforAccount(publicKeyClient);
 
-        String message = "4;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient+";"+Integer.toString(wts);
+        String message = "4;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient+";"+Integer.toString(wts)+";"+puzzleSolution+";";
 
         byte[] signature = null;
         signature = getSignature(accountAlias , message, password);
@@ -361,6 +380,8 @@ public class Client {
         incSeqNo();
         if(status.equals("200"))
             return 0;
+        else if(status.equals("404"))
+            return -5;
         //else
         return -1;
     }
@@ -376,10 +397,15 @@ public class Client {
             return "-4";
         }
 
+        String puzzleSolution = puzzle(publicKeyClient, password);
+        if (puzzleSolution == null){
+            return "-1";
+        }
+
         incrementRTS(publicKeyClient);
         int rts = getRTSforAccount(publicKeyClient);
 
-        String message = "5;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient+";"+Integer.toString(rts);
+        String message = "5;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient+";"+Integer.toString(rts)+";"+puzzleSolution+";";
         byte[] signature = null;
         signature = getSignature(accountAlias , message , password);
 
@@ -406,6 +432,8 @@ public class Client {
             }
             return result;
         }
+        else if(status.equals("404"))
+            return "-5";
 
         //else
         return "-1";
