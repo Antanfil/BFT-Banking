@@ -146,7 +146,7 @@ public class Server implements Serializable {
 
     public String openAccount( ClientS client , String accountPublicKey, String ts,String puzzleSolution){
         if(client.verifyPuzzle(Integer.parseInt(puzzleSolution)).equals("-1")){
-            return "o;0;NOK;" + Integer.toString(frontend.getOwnPort()-8080 ) + ";403";
+            return "o;0;NOK;" + Integer.toString(frontend.getOwnPort()-8080 ) + ";404";
         }
         PublicKey aPK = stringToKey(accountPublicKey);
         int status = client.createAccount( aPK );

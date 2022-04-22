@@ -116,6 +116,8 @@ public class ClientMain {
 								System.out.println("This private Key already has an account created");
 							else if(status == -4)
 								System.out.println("There is no such alias in the keystore");
+							else if(status == -5)
+								System.out.println("The puzzle is incorrect");
 							else if(status == 0)
 								System.out.println("Account opened successfully !!\n");
 							else

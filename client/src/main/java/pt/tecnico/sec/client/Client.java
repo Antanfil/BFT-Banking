@@ -172,6 +172,20 @@ public class Client {
         return null;
     }
 
+    String puzzle(String publicKeyAccount, String password){
+        String puzzle = requestPuzzle(publicKeyAccount, password);
+        if (puzzle == null){
+            System.out.println("Error requesting puzzle");
+            return null;
+        }
+        System.out.println(puzzle);
+        incSeqNo();
+        Scanner scanner = new Scanner(System.in);
+        
+        String puzzleSolution = scanner.nextLine();
+        return puzzleSolution;
+    }
+
 
     public int openAccount( String accountAlias , int iter, String password) {
         if(iter >= 10){
@@ -184,16 +198,12 @@ public class Client {
             return -4;
         }
 
-        String puzzle = requestPuzzle(publicKeyAccount, password);
-        if (puzzle == null){
-            System.out.println("Error requesting puzzle");
+        
+        String puzzleSolution = puzzle(publicKeyAccount, password);
+        if (puzzleSolution == null){
             return -1;
         }
-        System.out.println(puzzle);
-        incSeqNo();
-        Scanner scanner = new Scanner(System.in);
-        
-        String puzzleSolution = scanner.nextLine();
+
         String message = "1;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyAccount+";0;"+puzzleSolution;
         byte[] signature = null;
         signature = getSignature("client_"+id , message, password);
@@ -217,6 +227,8 @@ public class Client {
         }
         else if(status.equals("403"))
             return -3;
+        else if(status.equals("404"))
+            return -5;
 
         else
             return -1;
