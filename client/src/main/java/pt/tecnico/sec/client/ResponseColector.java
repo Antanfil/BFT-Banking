@@ -27,10 +27,12 @@ public class ResponseColector {
 
     synchronized void putResponse( Server.MessageResponse resp){
         if( resp.getMessage().split(";").length > 2 ){
-            String ack = resp.getMessage().split(";")[4];
-            if (ack.equals("ACK") ){
-                this.ack++;
-                responses.add(resp);
+            if(resp.getMessage().split(";")[2]!="o" || resp.getMessage().split(";")[2]!="c"){
+                String ack = resp.getMessage().split(";")[4];
+                if (ack.equals("ACK") ){
+                    this.ack++;
+                    responses.add(resp);
+                }
             }
         }
         else{
