@@ -137,8 +137,8 @@ public class Server implements Serializable {
     * */
     
     public String puzzle(ClientS client){
-        int a = (int)(Math.random()*100);
-        int b = (int)(Math.random()*100);
+        int a = client.getSID()+(client.getSeqNo()+5)*3;
+        int b = (a+11)/2;
 
         client.setPuzzle(a*b);
         return "p;0;ACK;"+ Integer.toString(frontend.getOwnPort()-8080  )+";Quanto e "+a+" * "+ b +"?" + ";200";
@@ -522,6 +522,7 @@ public class Server implements Serializable {
         }
         return "error";
     }
+
 
     /*
     AUXILIARY FUNCTIONS

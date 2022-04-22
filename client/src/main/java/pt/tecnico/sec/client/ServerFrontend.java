@@ -320,7 +320,7 @@ public class ServerFrontend {
             } catch (NoSuchAlgorithmException e) {
                 e.printStackTrace();
             } catch (BadPaddingException e) {
-                e.printStackTrace();
+                System.out.println("");
             } catch (InvalidKeyException e) {
                 e.printStackTrace();
             }

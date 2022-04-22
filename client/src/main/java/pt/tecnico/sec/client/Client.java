@@ -174,12 +174,12 @@ public class Client {
 
     String puzzle(String publicKeyAccount, String password){
         String puzzle = requestPuzzle(publicKeyAccount, password);
+        incSeqNo();
         if (puzzle == null){
             System.out.println("Error requesting puzzle");
             return null;
         }
         System.out.println(puzzle);
-        incSeqNo();
         Scanner scanner = new Scanner(System.in);
         
         String puzzleSolution = scanner.nextLine();
@@ -300,12 +300,16 @@ public class Client {
             return "-4";
         }
 
+        int error = incrementRTS(publicKeyClient);
+        if(error == -1){
+            return "-1";
+        }
+        
         String puzzleSolution = puzzle(publicKeyClient, password);
         if (puzzleSolution == null){
             return "-1";
         }
 
-        incrementRTS(publicKeyClient);
         int rts = getRTSforAccount(publicKeyClient);
 
         String message = "3;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient+";"+Integer.toString(rts)+";"+puzzleSolution+";";
@@ -318,7 +322,7 @@ public class Client {
             return checkAccount( accountAlias , iter +1, password);
         }
 
-
+        incSeqNo();
         String[] params = messageResponse.split(";");
 
         String status = params[2];
@@ -328,7 +332,6 @@ public class Client {
 
         String result;
 
-        incSeqNo();
         if(status.equals("200"))
             return balance;
         else if(status.equals("201") ){
@@ -397,12 +400,15 @@ public class Client {
             return "-4";
         }
 
+        int error = incrementRTS(publicKeyClient);
+        if(error == -1){
+            return "-1";
+        }
         String puzzleSolution = puzzle(publicKeyClient, password);
         if (puzzleSolution == null){
             return "-1";
         }
 
-        incrementRTS(publicKeyClient);
         int rts = getRTSforAccount(publicKeyClient);
 
         String message = "5;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyClient+";"+Integer.toString(rts)+";"+puzzleSolution+";";
@@ -527,10 +533,12 @@ public class Client {
     /*
     * AUXILIARY FUNCTIONS =======================================
     */
-    private void incrementRTS(String accPK) {
-
+    private int incrementRTS(String accPK) {
+        if (!accountsRTS.containsKey(accPK))
+            return -1;
         int rts = accountsRTS.get(accPK) ;
         accountsRTS.replace( accPK , rts+1);
+        return 1;
 
     }
 
