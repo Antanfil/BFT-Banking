@@ -5,6 +5,7 @@ import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Date;
 
 public class ClientS implements Serializable {
 
@@ -13,6 +14,7 @@ public class ClientS implements Serializable {
     int id;
     int SID = -1;
     int seqNo = 0;
+    Puzzle puzzle = null;
 
     public PublicKey getClientPK() {
         return clientPK;
@@ -119,6 +121,26 @@ public class ClientS implements Serializable {
 
         }
         return accountsInfo;
+    }
+
+    public void setPuzzle(int answser) {
+        Date timestamp = new Date();
+        timestamp.setTime(timestamp.getTime() + 60000);
+        Puzzle puz = new Puzzle(answser, timestamp);
+        this.puzzle = puz;
+    }
+
+    public String verifyPuzzle(int answer) {
+        Date currentTime = new Date();
+
+        if (puzzle.getPuzzleSolution() == answer && puzzle.getTimestamp().after(currentTime)) {
+            System.out.println("Puzzle solved");
+            
+            return "1";
+        }
+        else {
+            return "-1";
+        }
     }
 
 }

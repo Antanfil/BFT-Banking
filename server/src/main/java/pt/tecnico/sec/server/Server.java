@@ -14,6 +14,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.lang.String;
+import java.lang.Math;
 
 public class Server implements Serializable {
 
@@ -73,7 +74,7 @@ public class Server implements Serializable {
         switch(params[0]) {
             case "1":
                 System.out.println("Operation is open account. \n -------- \n");
-                msg = openAccount( client , params[4] , params[5]);
+                msg = openAccount( client , params[4] , params[5], params[6]);
                 this.logMessage(messageReq, signature);
                 break;
             case "2":
@@ -136,12 +137,17 @@ public class Server implements Serializable {
     * */
     
     public String puzzle(ClientS client){
-        
-        return ";this is a puzzle";
+        int a = (int)(Math.random()*100);
+        int b = (int)(Math.random()*100);
+
+        client.setPuzzle(a*b);
+        return "p;0;ACK;"+ Integer.toString(frontend.getOwnPort()-8080  )+";Quanto e "+a+" * "+ b +"?" + ";200";
     }
 
-    public String openAccount( ClientS client , String accountPublicKey, String ts){
-
+    public String openAccount( ClientS client , String accountPublicKey, String ts,String puzzleSolution){
+        if(client.verifyPuzzle(Integer.parseInt(puzzleSolution)).equals("-1")){
+            return "o;0;NOK;" + Integer.toString(frontend.getOwnPort()-8080 ) + ";403";
+        }
         PublicKey aPK = stringToKey(accountPublicKey);
         int status = client.createAccount( aPK );
         if(status == -1){

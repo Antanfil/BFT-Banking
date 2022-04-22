@@ -163,14 +163,11 @@ public class Client {
     String requestPuzzle(String publicKeyAccount, String password) {
         String message = "PUZZLE;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyAccount+";0";
         byte[] signature = getSignature("client_"+id , message , password);
-        System.out.println("hi");
         String messageResponse = _frontend.send(message, signature, serverPK, SSID , SeqNo, 0);
-        System.out.println("hi2");
-        
+        System.out.println("PUZZLE RESPONSE: "+messageResponse);
         String[] params = messageResponse.split(";");
-        if(params[0].equals("200")){
-            System.out.println(params);
-            return params[1];
+        if(params[3].equals("200")){
+            return params[2];
         }
         return null;
     }
@@ -186,14 +183,18 @@ public class Client {
         if (publicKeyAccount.equals("-4")){
             return -4;
         }
-/*
+
         String puzzle = requestPuzzle(publicKeyAccount, password);
         if (puzzle == null){
+            System.out.println("Error requesting puzzle");
             return -1;
         }
-        System.out.println(puzzle);*/
-
-        String message = "1;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyAccount+";0";
+        System.out.println(puzzle);
+        incSeqNo();
+        Scanner scanner = new Scanner(System.in);
+        
+        String puzzleSolution = scanner.nextLine();
+        String message = "1;"+id+";"+Integer.toString(SSID)+";"+Integer.toString(SeqNo)+";"+publicKeyAccount+";0;"+puzzleSolution;
         byte[] signature = null;
         signature = getSignature("client_"+id , message, password);
 
