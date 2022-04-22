@@ -14,6 +14,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.lang.String;
+import java.lang.Math;
 
 public class Server implements Serializable {
 
@@ -63,7 +64,7 @@ public class Server implements Serializable {
     */
 
     public String handleMessage(String messageReq, byte[] signature) {
-
+        System.out.println("handleMessage");
         String[] params = messageReq.split(";");
         String msg= "404";
         String truth ="";
@@ -73,7 +74,7 @@ public class Server implements Serializable {
         switch(params[0]) {
             case "1":
                 System.out.println("Operation is open account. \n -------- \n");
-                msg = openAccount( client , params[4] , params[5]);
+                msg = openAccount( client , params[4] , params[5], params[6]);
                 this.logMessage(messageReq, signature);
                 break;
             case "2":
@@ -121,6 +122,10 @@ public class Server implements Serializable {
                 msg = auditAccount( client , params[4], Integer.parseInt(params[5]) );
                 reads --;
                 break;
+            case "PUZZLE":
+                System.out.println("Operation is puzzle. \n -------- \n");
+                msg = puzzle(client);
+                break;
         }
         lastMessage = params[2]+";"+params[3]+";"+msg;
 
@@ -130,9 +135,19 @@ public class Server implements Serializable {
     /*
     * SERVER OPERATIONS ON ACCOUNTS
     * */
+    
+    public String puzzle(ClientS client){
+        int a = (int)(Math.random()*100);
+        int b = (int)(Math.random()*100);
 
-    public String openAccount( ClientS client , String accountPublicKey, String ts){
+        client.setPuzzle(a*b);
+        return "p;0;ACK;"+ Integer.toString(frontend.getOwnPort()-8080  )+";Quanto e "+a+" * "+ b +"?" + ";200";
+    }
 
+    public String openAccount( ClientS client , String accountPublicKey, String ts,String puzzleSolution){
+        if(client.verifyPuzzle(Integer.parseInt(puzzleSolution)).equals("-1")){
+            return "o;0;NOK;" + Integer.toString(frontend.getOwnPort()-8080 ) + ";403";
+        }
         PublicKey aPK = stringToKey(accountPublicKey);
         int status = client.createAccount( aPK );
         if(status == -1){
