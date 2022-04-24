@@ -40,11 +40,21 @@ password: password
 
 Go to the Home directory ( cd .. )
 
+And create 3 server keys
+
 `cd server
 `
 
 `./keystore`
->alias: server
+>alias: server1
+password: password
+
+`./keystore`
+>alias: server2
+password: password
+
+`./keystore`
+>alias: server3
 password: password
 
 
@@ -73,18 +83,23 @@ mvn clean install
 
 ### Initializing Server
 
-We will now initialize the necessary servers:
-* on localhost port 8080 (make sure this address is not already in use);
-* the name of yhe keystore 
-* the integer representing the maximum number of tolerated Byzantine faults, in this case 1, indicating that will be 
-  initialized 3 server's replicas:
+We will now initialize the necessary servers (on different terminals):
+* starting on localhost port 8080 (make sure this address is not already in use);
+* the name of the keystore 
+* the integer representing the number of servers in this case 3
 
-`mvn clean compile exec:java -Dexec.args="localhost 8080 server1.p12 1"`
+`mvn clean compile exec:java -Dexec.args="localhost 8080 server1.p12 3"`
+
+`mvn clean compile exec:java -Dexec.args="localhost 8081 server2.p12 3"`
+
+`mvn clean compile exec:java -Dexec.args="localhost 8082 server3.p12 3"`
 
 As we can start more than one server, after the initialization, we must press the enter key to proceed with the 
 broadcast of public keys across servers.
 
-### Initializing Client1
+After all servers are up and running press "enter" on each server
+
+### **Initializing Client1**
 
 We will now initialize Client 1 .
 
@@ -98,12 +113,17 @@ Run the following command to start a client:
 
 `mvn clean compile exec:java -Dexec.args="localhost 8080 1"`
 
-The integer that follows the port represents the same thing as no server, the maximum number of acceptable Byzantine 
-failures.
+The integer that follows the port represents the maximum number of servers that can be down at any given time. In this case since we have 3 server's running we can only tolerate 1 server to be down in other to guarantee the security properties of our system.
 
 When asked insert "1 password" ( corresponds to clientId=1 and password=password)
 
-### Creating Client1's accounts
+## **Creating Client1's accounts**
+
+**IMPORTANT! DENIAL OF SERVICE** - In order to prevent DDOS attack we implemented a POW system in our servers. As such after each operation in the client, the user will be prompted a simple question (random everytime) to solve. Make sure to type the anwser to this question whenever prompted and press enter.
+
+
+**IMPORTANT! Fault tolerance** - In order to test how our system works with servers we suggesting utilizing signals such as **SIGTSTP** (ctrl+z) to stop the servers and the command **fg** to resume the servers.
+
 
 Run the commands to create 2 accounts:
 
@@ -190,7 +210,10 @@ Run the commands to create 2 accounts:
 
 
 
-- If you wish to **reset the state of the server** delete the following file:
+- If you wish to **reset the state of the servers** delete the following file:
 
-`PROJECT_HOME_DIR/server/server.txt`
+`PROJECT_HOME_DIR/server/server1.txt`
+`PROJECT_HOME_DIR/server/server2.txt`
+`PROJECT_HOME_DIR/server/server3.txt`
+
 
