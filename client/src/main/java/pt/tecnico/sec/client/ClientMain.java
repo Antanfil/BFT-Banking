@@ -24,13 +24,14 @@ public class ClientMain {
  		}
  
  		final String host = args[0];
- 		final int port = Integer.parseInt(args[1]);
+ 		final int port1 = Integer.parseInt(args[1]);
+		 final int replicas = Integer.parseInt(args[2])*2+1;
 		int clientID = 0;
 		boolean again = true;
 
 
  		ServerFrontend frontend = null ;
-		frontend = new ServerFrontend( host , port );
+		frontend = new ServerFrontend( host , port1 , replicas );
 
 
 		String command;
@@ -63,11 +64,13 @@ public class ClientMain {
 		client.loadKeyStore( tokens1.get(1) );
 		System.out.println("Done !\n");
 		System.out.println("Exchanging Keys with the Server ...\n");
+
 		int value0 = client.exchangeKeys();
 		if(value0 == -1 ){
 			System.out.println(" Could not exchange Keys. Sorry \n");
 			return ;
 		}
+
 		System.out.println("Done !\n");
 		System.out.println("Connecting to server ...\n");
 		int value = client.connect( 0 , tokens1.get(1));
@@ -111,6 +114,10 @@ public class ClientMain {
 								System.out.println("Couldn't reach the server. Try again later");
 							else if(status == -3)
 								System.out.println("This private Key already has an account created");
+							else if(status == -4)
+								System.out.println("There is no such alias in the keystore");
+							else if(status == -5)
+								System.out.println("The puzzle is incorrect");
 							else if(status == 0)
 								System.out.println("Account opened successfully !!\n");
 							else
@@ -131,6 +138,16 @@ public class ClientMain {
 								System.out.println("Money Sent !! Awaiting confirmation by recipient.\n");
 							else if(status == 1)
 								System.out.println("You don't have enough money in this account :( \n");
+							else if (status == 2)
+								System.out.println("You can't send money to your own account :( \n");
+							else if (status == 3)
+								System.out.println("Your send amount must be higher than 0! \n");
+							else if(status == -4)
+								System.out.println("There is no such source alias in the keystore");
+							else if(status == -5)
+								System.out.println("There is no such destination alias in the keystore");
+							else if(status == -6)
+								System.out.println("The puzzle is incorrect");
 							else
 								System.out.println("Unknown error");
 						}
@@ -145,6 +162,10 @@ public class ClientMain {
 								System.out.println("Something went wrong. Try Again \n");
 							else if(status1 == "-2")
 								System.out.println("Couldn't reach the server. Try again later");
+							else if(status1 == "-4")
+								System.out.println("There is no such alias in the keystore");
+							else if(status1 == "-5")
+								System.out.println("The puzzle is incorrect");
 							else if( status1.length() > 7 ){
 								System.out.println("You have pending money entries to accept !!\n");
 								System.out.println(status1);
@@ -169,6 +190,10 @@ public class ClientMain {
 								System.out.println("Couldn't reach the server. Try again later");
 							else if (status == 0)
 								System.out.println("Money entered your account !! \n");
+							else if(status == -4)
+								System.out.println("There is no such alias in the keystore");
+							else if(status == -5)
+								System.out.println("The puzzle is incorrect");
 							else
 								System.out.println("Unknown error");
 						}
@@ -185,6 +210,10 @@ public class ClientMain {
 								System.out.println("Couldn't reach the server. Try again later");
 							else if (status1 == "2")
 								System.out.println("No transactions for this account yet !!");
+							else if(status1 == "-4")
+								System.out.println("There is no such alias in the keystore");
+							else if(status1 == "-5")
+								System.out.println("The puzzle is incorrect");
 							else if (status1.length() > 7) {
 								System.out.println("List of accounts transactions:");
 								System.out.println(status1 + "\n");
